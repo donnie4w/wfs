@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	//	_ "net/http/pprof"
 	"os"
 	"strings"
 
@@ -112,6 +113,10 @@ func check(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
+//func _pprof(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+//	pprof.Profile(w, r)
+//}
+
 func Start() {
 	storge.Init()
 	router := httprouter.New()
@@ -123,6 +128,7 @@ func Start() {
 	router.POST("/u/*.r", upload)
 	router.POST("/u", upload)
 	router.DELETE("/d/*.r", delete)
+	//	go http.ListenAndServe(fmt.Sprint(":", 5555), nil)
 	err := http.ListenAndServe(fmt.Sprint(":", CF.Port), router)
 	if err != nil {
 		logger.Error("httpserver start error:", err.Error())

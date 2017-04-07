@@ -109,6 +109,7 @@ func (this *DB) backup(key, value []byte) (err error) {
 		buf.Write(value)
 	}
 	this.f.Write(buf.Bytes())
+	this.f.Sync()
 	return
 }
 

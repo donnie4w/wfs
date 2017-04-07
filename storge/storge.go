@@ -208,25 +208,51 @@ func (this *LockString) UnLock(s string) {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+type lruCache struct {
+	cache *lru.Cache
+	lock  *sync.RWMutex
+}
+
+func NewLruCache(maxEntries int) *lruCache {
+	return &lruCache{cache: lru.New(maxEntries), lock: new(sync.RWMutex)}
+}
+
+func (this *lruCache) Get(key lru.Key) (value interface{}, b bool) {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return this.cache.Get(key)
+}
+
+func (this *lruCache) Remove(key lru.Key) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.cache.Remove(key)
+}
+func (this *lruCache) Add(key lru.Key, value interface{}) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.cache.Add(key, value)
+}
+
 type FileManager struct {
 	lock         *sync.RWMutex
-	fileMap      map[string]*Fdata
+	fileMap      *hashmap
 	fileMaxSize  int64  //
 	fileSequence []byte //
-	md5map       map[string]*Md5Bean
-	nameCache    *lru.Cache
+	md5map       *hashmap
+	nameCache    *lruCache
 	currFileName string
 }
 
 func OpenFileManager() (f *FileManager) {
-	f = &FileManager{lock: new(sync.RWMutex), fileMap: make(map[string]*Fdata, 0), fileMaxSize: CF.MaxDataSize, md5map: make(map[string]*Md5Bean, 0), nameCache: lru.New(1 << 20)}
+	f = &FileManager{lock: new(sync.RWMutex), fileMap: NewHashMap(), fileMaxSize: CF.MaxDataSize, md5map: NewHashMap(), nameCache: NewLruCache(1 << 20)}
 	f.getFData()
 	return
 }
 
 func (this *FileManager) getSegment(fingerprint string) (segment Segment, err error) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+	//	this.lock.RLock()
+	//	defer this.lock.RUnlock()
 	s, b := this.nameCache.Get(fingerprint)
 	if b && s != nil {
 		s1 := s.(*Segment)
@@ -240,8 +266,6 @@ func (this *FileManager) getSegment(fingerprint string) (segment Segment, err er
 	return
 }
 func (this *FileManager) hasName(name string) (b bool) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
 	_, b = this.nameCache.Get(name)
 	if b {
 		return
@@ -267,7 +291,8 @@ func (this *FileManager) removeNameCache(fingerprint string) {
 func (this *FileManager) getFData() (fdata *Fdata) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	if filedata, ok := this.fileMap[_current_file_]; ok {
+	if _filedata, ok := this.fileMap.Get(_current_file_); ok {
+		filedata := _filedata.(*Fdata)
 		if filedata.FileSize() < this.fileMaxSize {
 			return filedata
 		}
@@ -278,8 +303,8 @@ func (this *FileManager) getFData() (fdata *Fdata) {
 			filename = string(v)
 			fdata = this._openFdataFile(filename)
 			if fdata.FileSize() < this.fileMaxSize {
-				this.fileMap[filename] = fdata
-				this.fileMap[_current_file_] = fdata
+				this.fileMap.Put(filename, fdata)
+				this.fileMap.Put(_current_file_, fdata)
 				db.Put([]byte(_current_file_), []byte(filename))
 				this.currFileName = filename
 				return
@@ -307,9 +332,9 @@ func (this *FileManager) getFData() (fdata *Fdata) {
 func (this *FileManager) _newFdata(isCurrent bool) (fdata *Fdata) {
 	filename := fmt.Sprint("data/", time.Now().Unix(), ".dat")
 	fdata = this._openFdataFile(filename)
-	this.fileMap[fdata.FileName] = fdata
+	this.fileMap.Put(fdata.FileName, fdata)
 	if isCurrent {
-		this.fileMap[_current_file_] = fdata
+		this.fileMap.Put(_current_file_, fdata)
 		db.Put([]byte(_current_file_), []byte(fdata.FileName))
 		this.currFileName = filename
 	}
@@ -317,12 +342,13 @@ func (this *FileManager) _newFdata(isCurrent bool) (fdata *Fdata) {
 }
 
 func (this *FileManager) GetFdataByName(filename string) (fdata *Fdata) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	var ok bool
-	if fdata, ok = this.fileMap[filename]; !ok {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	if _fdata, ok := this.fileMap.Get(filename); !ok {
 		fdata = this._openFdataFile(filename)
-		this.fileMap[filename] = fdata
+		this.fileMap.Put(filename, fdata)
+	} else {
+		fdata = _fdata.(*Fdata)
 	}
 	return
 }
@@ -343,14 +369,15 @@ func (this *FileManager) _openFdataFile(filename string) (fdata *Fdata) {
 }
 
 func (this *FileManager) GetMd5Bean(md5key []byte) (mb *Md5Bean) {
-	var ok bool
-	if mb, ok = this.md5map[string(md5key)]; ok {
+	if _mb, ok := this.md5map.Get(md5key); ok {
+		mb = _mb.(*Md5Bean)
 		return
 	}
 	nmb, err := DBGetMd5Bean(md5key)
 	if err == nil {
 		mb = &nmb
-		this.md5map[string(md5key)] = mb
+		//		this.md5map[string(md5key)] = mb
+		this.md5map.Put(string(md5key), mb)
 	}
 	return
 }
@@ -360,7 +387,8 @@ func (this *FileManager) GetMd5Bean(md5key []byte) (mb *Md5Bean) {
 func (this *FileManager) DelMd5Bean(md5key []byte) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	delete(this.md5map, string(md5key))
+	//	delete(this.md5map, string(md5key))
+	this.md5map.Del(string(md5key))
 	DBDel(md5key)
 	return
 }
@@ -433,8 +461,8 @@ func (this *Fdata) CloseAndDelete() {
 }
 
 func (this *Fdata) GetData(md5Bean *Md5Bean) (bs []byte, err error) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+	//	this.lock.RLock()
+	//	defer this.lock.RUnlock()
 	bs, err = ReadAt(this.f, int(md5Bean.Size), md5Bean.Offset)
 	return
 }
