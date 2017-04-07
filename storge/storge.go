@@ -14,6 +14,7 @@ import (
 	"hash/crc32"
 	"io/ioutil"
 	"os"
+	//	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,6 +41,11 @@ func Init() {
 
 func AppendData(bs []byte, name string, fileType string) (err error) {
 	defer catchError()
+	//	defer func() {
+	//		if er := recover(); er != nil {
+	//			fmt.Println(string(debug.Stack()))
+	//		}
+	//	}()
 	if name == "" || bs == nil || len(bs) == 0 {
 		return errors.New("nil")
 	}
@@ -68,8 +74,10 @@ func AppendData(bs []byte, name string, fileType string) (err error) {
 		mb = NewMd5Bean(offset, int32(len(bs)), f.FileName, nil)
 		err = f.AppendData(bs, offset)
 		err = f.WriteIdxMd5(md5key)
+		fmt.Println("appenddata:", name)
 	}
 	mb.AddQuote()
+	//	fmt.Println("append:", name)
 	//	fmt.Println("quote===>", mb.QuoteNum)
 	DBPutMd5Bean(md5key, *mb)
 	return
@@ -89,6 +97,11 @@ func _AppendData(bs []byte, f *Fdata) (err error) {
 
 func GetData(name string) (bs []byte, er error) {
 	defer catchError()
+	//	defer func() {
+	//		if er := recover(); er != nil {
+	//			fmt.Println(string(debug.Stack()))
+	//		}
+	//	}()
 	if name == "" {
 		return nil, errors.New("nil")
 	}
@@ -369,14 +382,13 @@ func (this *FileManager) _openFdataFile(filename string) (fdata *Fdata) {
 }
 
 func (this *FileManager) GetMd5Bean(md5key []byte) (mb *Md5Bean) {
-	if _mb, ok := this.md5map.Get(md5key); ok {
+	if _mb, ok := this.md5map.Get(string(md5key)); ok {
 		mb = _mb.(*Md5Bean)
 		return
 	}
 	nmb, err := DBGetMd5Bean(md5key)
 	if err == nil {
 		mb = &nmb
-		//		this.md5map[string(md5key)] = mb
 		this.md5map.Put(string(md5key), mb)
 	}
 	return
