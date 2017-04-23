@@ -25,17 +25,7 @@ var Factory *SlaveFactory
 
 func Init() {
 	Factory = NewSlaveFactory()
-	_initSlaves()
-}
-
-func _initSlaves() {
-	slavemap := storge.SlaveList()
-	if slavemap != nil {
-		for _, v := range slavemap {
-			sb := _Decoder(v)
-			Factory._puts(&sb)
-		}
-	}
+	Factory._initSlaves()
 }
 
 type SlaveBean struct {
@@ -63,6 +53,16 @@ func NewSlaveFactory() (sf *SlaveFactory) {
 	sf.addSlave("master", "")
 	go sf.hbtask()
 	return
+}
+
+func (this *SlaveFactory) _initSlaves() {
+	slavemap := storge.SlaveList()
+	if slavemap != nil {
+		for _, v := range slavemap {
+			sb := _Decoder(v)
+			this._puts(&sb)
+		}
+	}
 }
 
 func (this *SlaveFactory) lenght() int {
@@ -202,12 +202,11 @@ LOOP:
 		}
 		delete(this.slaveSlb, name)
 		//		name := <-this.slaveChan
-		var ok bool
-		if _, ok = this.slavevalid[name]; !ok {
+		//		var ok bool
+		if _, ok := this.slavevalid[name]; !ok {
 			goto LOOP
 		}
-		if sb, ok = this.slaveMap[name]; ok {
-			atomic.AddInt32(&sb.WeightCount, -1)
+		if _sb, ok := this.slaveMap[name]; ok {
 			//			if sb.WeightCount > 0 {
 			//				go func() {
 			//					this.slaveChan <- sb.Name
@@ -216,7 +215,12 @@ LOOP:
 			//				atomic.StoreInt32(&sb.WeightCount, sb.Weight)
 			//				goto LOOP
 			//			}
-			return
+			if _sb.WeightCount <= 0 {
+				goto LOOP
+			} else {
+				atomic.AddInt32(&_sb.WeightCount, -1)
+				return _sb
+			}
 		} else {
 			goto LOOP
 		}
@@ -229,12 +233,15 @@ LOOP:
 		//		if len(this.slaveChan) > 0 {
 		//			goto LOOP
 		//		}
+
 		for k, _ := range this.slavevalid {
-			v := this.slaveMap[k]
-			if v.WeightCount > 0 {
-				this.slaveSlb[k] = 0
+			if v, ok := this.slaveMap[k]; ok {
+				if ok && v.WeightCount > 0 {
+					this.slaveSlb[k] = 0
+				}
 			}
 		}
+
 		if len(this.slaveSlb) > 0 {
 			goto LOOP
 		} else if len(this.slaveMap) > 0 {
@@ -244,7 +251,9 @@ LOOP:
 					this.slaveSlb[k] = 0
 				}
 			}
-			goto LOOP
+			if len(this.slaveSlb) > 0 {
+				goto LOOP
+			}
 		}
 	}
 	return

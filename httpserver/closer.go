@@ -12,7 +12,7 @@ type Closer interface {
 	Close() error
 }
 
-var pool = NewPool()
+//var pool = NewPool()
 
 type Pool struct {
 	pool1 *ClosePool
