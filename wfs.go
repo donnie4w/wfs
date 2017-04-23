@@ -6,7 +6,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	. "github.com/donnie4w/wfs/conf"
 	"github.com/donnie4w/wfs/httpserver"
@@ -15,6 +14,5 @@ import (
 func main() {
 	ParseFlag()
 	flag.Parse()
-	fmt.Println("wfs start ,listen:", CF.Port)
 	httpserver.Start()
 }

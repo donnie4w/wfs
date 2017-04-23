@@ -30,6 +30,11 @@ type IWfs interface {
 	// Parameters:
 	//  - Name
 	WfsDel(name string) (r *WfsAck, err error)
+	// 命令
+	//
+	// Parameters:
+	//  - Wc
+	WfsCmd(wc *WfsCmd) (r *WfsAck, err error)
 }
 
 type IWfsClient struct {
@@ -295,6 +300,85 @@ func (p *IWfsClient) recvWfsDel() (value *WfsAck, err error) {
 	return
 }
 
+// 命令
+//
+// Parameters:
+//  - Wc
+func (p *IWfsClient) WfsCmd(wc *WfsCmd) (r *WfsAck, err error) {
+	if err = p.sendWfsCmd(wc); err != nil {
+		return
+	}
+	return p.recvWfsCmd()
+}
+
+func (p *IWfsClient) sendWfsCmd(wc *WfsCmd) (err error) {
+	oprot := p.OutputProtocol
+	if oprot == nil {
+		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.OutputProtocol = oprot
+	}
+	p.SeqId++
+	if err = oprot.WriteMessageBegin("wfsCmd", thrift.CALL, p.SeqId); err != nil {
+		return
+	}
+	args := IWfsWfsCmdArgs{
+		Wc: wc,
+	}
+	if err = args.Write(oprot); err != nil {
+		return
+	}
+	if err = oprot.WriteMessageEnd(); err != nil {
+		return
+	}
+	return oprot.Flush()
+}
+
+func (p *IWfsClient) recvWfsCmd() (value *WfsAck, err error) {
+	iprot := p.InputProtocol
+	if iprot == nil {
+		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.InputProtocol = iprot
+	}
+	method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+	if err != nil {
+		return
+	}
+	if method != "wfsCmd" {
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "wfsCmd failed: wrong method name")
+		return
+	}
+	if p.SeqId != seqId {
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "wfsCmd failed: out of sequence response")
+		return
+	}
+	if mTypeId == thrift.EXCEPTION {
+		error6 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+		var error7 error
+		error7, err = error6.Read(iprot)
+		if err != nil {
+			return
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
+			return
+		}
+		err = error7
+		return
+	}
+	if mTypeId != thrift.REPLY {
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "wfsCmd failed: invalid message type")
+		return
+	}
+	result := IWfsWfsCmdResult{}
+	if err = result.Read(iprot); err != nil {
+		return
+	}
+	if err = iprot.ReadMessageEnd(); err != nil {
+		return
+	}
+	value = result.GetSuccess()
+	return
+}
+
 type IWfsProcessor struct {
 	processorMap map[string]thrift.TProcessorFunction
 	handler      IWfs
@@ -315,11 +399,12 @@ func (p *IWfsProcessor) ProcessorMap() map[string]thrift.TProcessorFunction {
 
 func NewIWfsProcessor(handler IWfs) *IWfsProcessor {
 
-	self6 := &IWfsProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
-	self6.processorMap["wfsPost"] = &iWfsProcessorWfsPost{handler: handler}
-	self6.processorMap["wfsRead"] = &iWfsProcessorWfsRead{handler: handler}
-	self6.processorMap["wfsDel"] = &iWfsProcessorWfsDel{handler: handler}
-	return self6
+	self8 := &IWfsProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
+	self8.processorMap["wfsPost"] = &iWfsProcessorWfsPost{handler: handler}
+	self8.processorMap["wfsRead"] = &iWfsProcessorWfsRead{handler: handler}
+	self8.processorMap["wfsDel"] = &iWfsProcessorWfsDel{handler: handler}
+	self8.processorMap["wfsCmd"] = &iWfsProcessorWfsCmd{handler: handler}
+	return self8
 }
 
 func (p *IWfsProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -332,12 +417,12 @@ func (p *IWfsProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, er
 	}
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
-	x7 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+	x9 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
 	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
-	x7.Write(oprot)
+	x9.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
-	return false, x7
+	return false, x9
 
 }
 
@@ -468,6 +553,54 @@ func (p *iWfsProcessorWfsDel) Process(seqId int32, iprot, oprot thrift.TProtocol
 		result.Success = retval
 	}
 	if err2 = oprot.WriteMessageBegin("wfsDel", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type iWfsProcessorWfsCmd struct {
+	handler IWfs
+}
+
+func (p *iWfsProcessorWfsCmd) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := IWfsWfsCmdArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("wfsCmd", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	result := IWfsWfsCmdResult{}
+	var retval *WfsAck
+	var err2 error
+	if retval, err2 = p.handler.WfsCmd(args.Wc); err2 != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing wfsCmd: "+err2.Error())
+		oprot.WriteMessageBegin("wfsCmd", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return true, err2
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("wfsCmd", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -1069,4 +1202,204 @@ func (p *IWfsWfsDelResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("IWfsWfsDelResult(%+v)", *p)
+}
+
+// Attributes:
+//  - Wc
+type IWfsWfsCmdArgs struct {
+	Wc *WfsCmd `thrift:"wc,1" json:"wc"`
+}
+
+func NewIWfsWfsCmdArgs() *IWfsWfsCmdArgs {
+	return &IWfsWfsCmdArgs{}
+}
+
+var IWfsWfsCmdArgs_Wc_DEFAULT *WfsCmd
+
+func (p *IWfsWfsCmdArgs) GetWc() *WfsCmd {
+	if !p.IsSetWc() {
+		return IWfsWfsCmdArgs_Wc_DEFAULT
+	}
+	return p.Wc
+}
+func (p *IWfsWfsCmdArgs) IsSetWc() bool {
+	return p.Wc != nil
+}
+
+func (p *IWfsWfsCmdArgs) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdArgs) readField1(iprot thrift.TProtocol) error {
+	p.Wc = &WfsCmd{}
+	if err := p.Wc.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Wc), err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdArgs) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("wfsCmd_args"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("wc", thrift.STRUCT, 1); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:wc: ", p), err)
+	}
+	if err := p.Wc.Write(oprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.Wc), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 1:wc: ", p), err)
+	}
+	return err
+}
+
+func (p *IWfsWfsCmdArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IWfsWfsCmdArgs(%+v)", *p)
+}
+
+// Attributes:
+//  - Success
+type IWfsWfsCmdResult struct {
+	Success *WfsAck `thrift:"success,0" json:"success,omitempty"`
+}
+
+func NewIWfsWfsCmdResult() *IWfsWfsCmdResult {
+	return &IWfsWfsCmdResult{}
+}
+
+var IWfsWfsCmdResult_Success_DEFAULT *WfsAck
+
+func (p *IWfsWfsCmdResult) GetSuccess() *WfsAck {
+	if !p.IsSetSuccess() {
+		return IWfsWfsCmdResult_Success_DEFAULT
+	}
+	return p.Success
+}
+func (p *IWfsWfsCmdResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *IWfsWfsCmdResult) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 0:
+			if err := p.readField0(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdResult) readField0(iprot thrift.TProtocol) error {
+	p.Success = &WfsAck{}
+	if err := p.Success.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdResult) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("wfsCmd_result"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField0(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *IWfsWfsCmdResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err := oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 0:success: ", p), err)
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.Success), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 0:success: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *IWfsWfsCmdResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("IWfsWfsCmdResult(%+v)", *p)
 }

@@ -14,8 +14,8 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = bytes.Equal
 
-const Wfsprotocolversion = 1
-const WfsprotocolversionName = "0.0.1"
+const Wfsprotocolversion = 2
+const WfsprotocolversionName = "0.0.2"
 
 func init() {
 }

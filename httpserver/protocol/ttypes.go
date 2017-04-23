@@ -20,8 +20,10 @@ var GoUnusedProtection__ int
 //
 // Attributes:
 //  - Status: 状态
+//  - Desc
 type WfsAck struct {
-	Status *int32 `thrift:"status,1" json:"status,omitempty"`
+	Status *int32  `thrift:"status,1" json:"status,omitempty"`
+	Desc   *string `thrift:"desc,2" json:"desc,omitempty"`
 }
 
 func NewWfsAck() *WfsAck {
@@ -36,8 +38,21 @@ func (p *WfsAck) GetStatus() int32 {
 	}
 	return *p.Status
 }
+
+var WfsAck_Desc_DEFAULT string
+
+func (p *WfsAck) GetDesc() string {
+	if !p.IsSetDesc() {
+		return WfsAck_Desc_DEFAULT
+	}
+	return *p.Desc
+}
 func (p *WfsAck) IsSetStatus() bool {
 	return p.Status != nil
+}
+
+func (p *WfsAck) IsSetDesc() bool {
+	return p.Desc != nil
 }
 
 func (p *WfsAck) Read(iprot thrift.TProtocol) error {
@@ -56,6 +71,10 @@ func (p *WfsAck) Read(iprot thrift.TProtocol) error {
 		switch fieldId {
 		case 1:
 			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		case 2:
+			if err := p.readField2(iprot); err != nil {
 				return err
 			}
 		default:
@@ -82,11 +101,23 @@ func (p *WfsAck) readField1(iprot thrift.TProtocol) error {
 	return nil
 }
 
+func (p *WfsAck) readField2(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 2: ", err)
+	} else {
+		p.Desc = &v
+	}
+	return nil
+}
+
 func (p *WfsAck) Write(oprot thrift.TProtocol) error {
 	if err := oprot.WriteStructBegin("WfsAck"); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField2(oprot); err != nil {
 		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
@@ -113,115 +144,26 @@ func (p *WfsAck) writeField1(oprot thrift.TProtocol) (err error) {
 	return err
 }
 
-func (p *WfsAck) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("WfsAck(%+v)", *p)
-}
-
-// 返回对象
-//
-// Attributes:
-//  - Status: 状态
-type Wfs struct {
-	Status *int32 `thrift:"status,1" json:"status,omitempty"`
-}
-
-func NewWfs() *Wfs {
-	return &Wfs{}
-}
-
-var Wfs_Status_DEFAULT int32
-
-func (p *Wfs) GetStatus() int32 {
-	if !p.IsSetStatus() {
-		return Wfs_Status_DEFAULT
-	}
-	return *p.Status
-}
-func (p *Wfs) IsSetStatus() bool {
-	return p.Status != nil
-}
-
-func (p *Wfs) Read(iprot thrift.TProtocol) error {
-	if _, err := iprot.ReadStructBegin(); err != nil {
-		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
-	}
-
-	for {
-		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
-		if err != nil {
-			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+func (p *WfsAck) writeField2(oprot thrift.TProtocol) (err error) {
+	if p.IsSetDesc() {
+		if err := oprot.WriteFieldBegin("desc", thrift.STRING, 2); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:desc: ", p), err)
 		}
-		if fieldTypeId == thrift.STOP {
-			break
-		}
-		switch fieldId {
-		case 1:
-			if err := p.readField1(iprot); err != nil {
-				return err
-			}
-		default:
-			if err := iprot.Skip(fieldTypeId); err != nil {
-				return err
-			}
-		}
-		if err := iprot.ReadFieldEnd(); err != nil {
-			return err
-		}
-	}
-	if err := iprot.ReadStructEnd(); err != nil {
-		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
-	}
-	return nil
-}
-
-func (p *Wfs) readField1(iprot thrift.TProtocol) error {
-	if v, err := iprot.ReadI32(); err != nil {
-		return thrift.PrependError("error reading field 1: ", err)
-	} else {
-		p.Status = &v
-	}
-	return nil
-}
-
-func (p *Wfs) Write(oprot thrift.TProtocol) error {
-	if err := oprot.WriteStructBegin("Wfs"); err != nil {
-		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
-	}
-	if err := p.writeField1(oprot); err != nil {
-		return err
-	}
-	if err := oprot.WriteFieldStop(); err != nil {
-		return thrift.PrependError("write field stop error: ", err)
-	}
-	if err := oprot.WriteStructEnd(); err != nil {
-		return thrift.PrependError("write struct stop error: ", err)
-	}
-	return nil
-}
-
-func (p *Wfs) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.IsSetStatus() {
-		if err := oprot.WriteFieldBegin("status", thrift.I32, 1); err != nil {
-			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:status: ", p), err)
-		}
-		if err := oprot.WriteI32(int32(*p.Status)); err != nil {
-			return thrift.PrependError(fmt.Sprintf("%T.status (1) field write error: ", p), err)
+		if err := oprot.WriteString(string(*p.Desc)); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.desc (2) field write error: ", p), err)
 		}
 		if err := oprot.WriteFieldEnd(); err != nil {
-			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:status: ", p), err)
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 2:desc: ", p), err)
 		}
 	}
 	return err
 }
 
-func (p *Wfs) String() string {
+func (p *WfsAck) String() string {
 	if p == nil {
 		return "<nil>"
 	}
-	return fmt.Sprintf("Wfs(%+v)", *p)
+	return fmt.Sprintf("WfsAck(%+v)", *p)
 }
 
 // 文件对象
@@ -415,4 +357,154 @@ func (p *WfsFile) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("WfsFile(%+v)", *p)
+}
+
+// 命令
+//
+// Attributes:
+//  - CmdKey: 名称
+//  - CmdValue: 对象
+type WfsCmd struct {
+	CmdKey   *string `thrift:"cmdKey,1" json:"cmdKey,omitempty"`
+	CmdValue *string `thrift:"cmdValue,2" json:"cmdValue,omitempty"`
+}
+
+func NewWfsCmd() *WfsCmd {
+	return &WfsCmd{}
+}
+
+var WfsCmd_CmdKey_DEFAULT string
+
+func (p *WfsCmd) GetCmdKey() string {
+	if !p.IsSetCmdKey() {
+		return WfsCmd_CmdKey_DEFAULT
+	}
+	return *p.CmdKey
+}
+
+var WfsCmd_CmdValue_DEFAULT string
+
+func (p *WfsCmd) GetCmdValue() string {
+	if !p.IsSetCmdValue() {
+		return WfsCmd_CmdValue_DEFAULT
+	}
+	return *p.CmdValue
+}
+func (p *WfsCmd) IsSetCmdKey() bool {
+	return p.CmdKey != nil
+}
+
+func (p *WfsCmd) IsSetCmdValue() bool {
+	return p.CmdValue != nil
+}
+
+func (p *WfsCmd) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		case 2:
+			if err := p.readField2(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *WfsCmd) readField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 1: ", err)
+	} else {
+		p.CmdKey = &v
+	}
+	return nil
+}
+
+func (p *WfsCmd) readField2(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 2: ", err)
+	} else {
+		p.CmdValue = &v
+	}
+	return nil
+}
+
+func (p *WfsCmd) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("WfsCmd"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField2(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *WfsCmd) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetCmdKey() {
+		if err := oprot.WriteFieldBegin("cmdKey", thrift.STRING, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:cmdKey: ", p), err)
+		}
+		if err := oprot.WriteString(string(*p.CmdKey)); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.cmdKey (1) field write error: ", p), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:cmdKey: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *WfsCmd) writeField2(oprot thrift.TProtocol) (err error) {
+	if p.IsSetCmdValue() {
+		if err := oprot.WriteFieldBegin("cmdValue", thrift.STRING, 2); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:cmdValue: ", p), err)
+		}
+		if err := oprot.WriteString(string(*p.CmdValue)); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.cmdValue (2) field write error: ", p), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 2:cmdValue: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *WfsCmd) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("WfsCmd(%+v)", *p)
 }

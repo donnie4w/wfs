@@ -30,9 +30,9 @@ wfs没有过多额外功能，主要是 **增加文件，删除文件，拉取�
 ***
 
 # 2. 使用thrift访问wfs     
-  wfsPost()    上传文件
-  wfsRead()    拉取文件  
-  wfsDel       删除文件  
+  wfsPost()    上传文件 <br/>
+  wfsRead()    拉取文件 <br/> 
+  wfsDel       删除文件 <br/> 
 可以参考go版本  github.com/donnie4w/wfs-goclient  
 
 ***
@@ -56,3 +56,13 @@ mode 规则参考 https://developer.qiniu.com/dora/api/1279/basic-processing-ima
 wfs-linux-amd64.gz		<br/>
 wfs-windows-amd64.zip    <br/>
 解压后 wfs --help 可以查看参数 ， 直接运行也可以默认端口3434  <br/>
+
+***
+**版本0.0.2**
+wfs提供了分片支持，分片可以解决单个节点的资源限制问题<br/>
+wfs -slavelist 查询目前的节点 					<br/>
+wfs -addslave slave1:192.168.1.101:3434  增加分片 节点名slave1，地址：192.168.1.101：3434 <br/>
+wfs -addslave slave2:192.168.1.102:3434  增加分片 节点名slave2，地址：192.168.1.102：3434 <br/>
+wfs -removeslave slave1  删除分片slave1		<br/>
+
+

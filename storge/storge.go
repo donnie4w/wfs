@@ -14,7 +14,7 @@ import (
 	"hash/crc32"
 	"io/ioutil"
 	"os"
-	//	"runtime/debug"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,37 +23,46 @@ import (
 	. "github.com/donnie4w/wfs/conf"
 	. "github.com/donnie4w/wfs/db"
 	"github.com/golang/groupcache/lru"
+	"github.com/golang/snappy"
 )
 
 var _del_ = "_del_"
 var _current_file_ = "_current_file_"
 var _file_sequence_ = "_file_sequence_"
+var _dat_ = "_dat_"
+var _slave_ = "_slave_"
 var _ERR_CODE_APPEND_DATA = 501
 
 var db *DB
 var fm *FileManager
 
 func Init() {
-	db = NewDB(CF.Data, true)
+	db = NewDB(CF.FileData+"/fsdb", true)
 	fm = OpenFileManager()
 	go _Ticker(1800, _compact)
 }
 
-func AppendData(bs []byte, name string, fileType string) (err error) {
-	defer catchError()
-	//	defer func() {
-	//		if er := recover(); er != nil {
-	//			fmt.Println(string(debug.Stack()))
-	//		}
-	//	}()
+func AppendData(bs []byte, name string, fileType string, shardname string) (err error) {
+	//	defer catchError()
+	defer func() {
+		if er := recover(); er != nil {
+			fmt.Println(string(debug.Stack()))
+		}
+	}()
+	if CF.Readonly {
+		return errors.New("readonly")
+	}
 	if name == "" || bs == nil || len(bs) == 0 {
 		return errors.New("nil")
 	}
 	fingerprint := _fingerprint([]byte(name))
 	lockString.Lock(fingerprint)
 	defer lockString.UnLock(fingerprint)
+	if len(shardname) > 0 {
+		return DBPutSegment([]byte(fingerprint), *NewSegment(name, fileType, nil, shardname))
+	}
 	md5key := MD5(bs)
-	sbs := NewSegment(name, fileType, md5key)
+	sbs := NewSegment(name, fileType, md5key, "")
 	DBPutSegment([]byte(fingerprint), *sbs)
 	fm.setNameCache(fingerprint, sbs)
 	lockString.Lock(string(md5key))
@@ -70,44 +79,58 @@ func AppendData(bs []byte, name string, fileType string) (err error) {
 		//		err = f.AppendData(bss, offset)
 		//		err = f.WriteIdxMd5(md5key)
 		//		err = DBPut(sequence, md5key)
-		offset := f.GetAndSetCurPoint(int64(len(bs)))
-		mb = NewMd5Bean(offset, int32(len(bs)), f.FileName, nil)
-		err = f.AppendData(bs, offset)
+		//		offset := f.GetAndSetCurPoint(int64(len(bs)))
+		offset, size, er := f.AppendData(bs)
+		if er != nil {
+			return er
+		}
+		mb = NewMd5Bean(offset, size, f.FileName, nil, CF.Compress)
 		err = f.WriteIdxMd5(md5key)
-		fmt.Println("appenddata:", name)
+		if err != nil {
+			return
+		}
 	}
 	mb.AddQuote()
 	//	fmt.Println("append:", name)
 	//	fmt.Println("quote===>", mb.QuoteNum)
-	DBPutMd5Bean(md5key, *mb)
+	err = DBPutMd5Bean(md5key, *mb)
 	return
 }
 
 func _AppendData(bs []byte, f *Fdata) (err error) {
-	//	fmt.Println("_AppendData:", f)
+	offset, size, er := f.AppendData(bs)
+	if er != nil {
+		return er
+	}
 	md5key := MD5(bs)
-	offset := f.GetAndSetCurPoint(int64(len(bs)))
-	mb := NewMd5Bean(offset, int32(len(bs)), f.FileName, nil)
-	err = f.AppendData(bs, offset)
+	//	offset := f.GetAndSetCurPoint(int64(len(bs)))
+	mb := NewMd5Bean(offset, size, f.FileName, nil, CF.Compress)
 	err = f.WriteIdxMd5(md5key)
+	if err != nil {
+		return
+	}
 	mb.AddQuote()
-	DBPutMd5Bean(md5key, *mb)
+	err = DBPutMd5Bean(md5key, *mb)
 	return
 }
 
-func GetData(name string) (bs []byte, er error) {
-	defer catchError()
-	//	defer func() {
-	//		if er := recover(); er != nil {
-	//			fmt.Println(string(debug.Stack()))
-	//		}
-	//	}()
+func GetData(name string) (bs []byte, shardname string, er error) {
+	//	defer catchError()
+	defer func() {
+		if er := recover(); er != nil {
+			fmt.Println(string(debug.Stack()))
+		}
+	}()
 	if name == "" {
-		return nil, errors.New("nil")
+		return nil, "", errors.New("nil")
 	}
 	fingerprint := _fingerprint([]byte(name))
 	segment, err := fm.getSegment(fingerprint)
 	if err == nil {
+		shardname = segment.ShardName
+		if len(shardname) > 0 {
+			return
+		}
 		md5key := segment.Md5
 		md5Bean, err := DBGetMd5Bean(md5key)
 		if err == nil {
@@ -123,10 +146,13 @@ func GetData(name string) (bs []byte, er error) {
 	return
 }
 
-func DelData(name string) (err error) {
+func DelData(name string) (shardname string, err error) {
 	defer catchError()
+	if CF.Readonly {
+		return "", errors.New("readonly")
+	}
 	if name == "" {
-		return errors.New("nil")
+		return "", errors.New("nil")
 	}
 	fingerprint := _fingerprint([]byte(name))
 	lockString.Lock(fingerprint)
@@ -135,18 +161,21 @@ func DelData(name string) (err error) {
 	fm.removeNameCache(fingerprint)
 	err = DBDel([]byte(fingerprint))
 	if er == nil {
+		shardname = segment.ShardName
 		md5key := segment.Md5
-		lockString.Lock(string(md5key))
-		defer lockString.UnLock(string(md5key))
-		mb := fm.GetMd5Bean(md5key)
-		mb.SubQuote()
-		//		fmt.Println("===>", mb.QuoteNum)
-		if mb.QuoteNum <= 0 {
-			fm.DelMd5Bean(md5key)
-			//			fmt.Println("deldata===>", mb.Sequence)
-			_saveDel(mb)
-		} else {
-			DBPutMd5Bean(md5key, *mb)
+		if len(md5key) > 0 {
+			lockString.Lock(string(md5key))
+			defer lockString.UnLock(string(md5key))
+			mb := fm.GetMd5Bean(md5key)
+			if mb != nil {
+				mb.SubQuote()
+				if mb.QuoteNum <= 0 {
+					fm.DelMd5Bean(md5key)
+					_saveDel(mb)
+				} else {
+					DBPutMd5Bean(md5key, *mb)
+				}
+			}
 		}
 	}
 	return
@@ -343,7 +372,10 @@ func (this *FileManager) getFData() (fdata *Fdata) {
 //}
 
 func (this *FileManager) _newFdata(isCurrent bool) (fdata *Fdata) {
-	filename := fmt.Sprint("data/", time.Now().Unix(), ".dat")
+	sub := time.Now().Unix()
+	//	fmt.Println("sub:", sub)
+	db.Put([]byte(fmt.Sprint(_dat_, sub)), []byte{0})
+	filename := fmt.Sprint(CF.FileData, "/", sub, ".dat")
 	fdata = this._openFdataFile(filename)
 	this.fileMap.Put(fdata.FileName, fdata)
 	if isCurrent {
@@ -367,14 +399,12 @@ func (this *FileManager) GetFdataByName(filename string) (fdata *Fdata) {
 }
 
 func (this *FileManager) _openFdataFile(filename string) (fdata *Fdata) {
-	//	fmt.Println("_newFdataFile=>", filename)
 	idxfilename := strings.Replace(filename, ".dat", ".idx", -1)
 	currFile, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0644)
 	currIdxFile, err := os.OpenFile(idxfilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
 	if err == nil {
 		stat, _ := currFile.Stat()
-		//		fmt.Println("stat.Size()===>", stat.Size())
-		fdata = &Fdata{filename, stat.Size(), currFile, currIdxFile, new(sync.RWMutex)}
+		fdata = &Fdata{filename, stat.Size(), currFile, currIdxFile, new(sync.RWMutex), new(ReadBean)}
 	} else {
 		fmt.Println("errer==>", err.Error())
 	}
@@ -407,12 +437,27 @@ func (this *FileManager) DelMd5Bean(md5key []byte) {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+type ReadBean struct {
+	rps          int64 //read per second
+	lastReadTime int64
+}
+
+func (this *ReadBean) add() {
+	if time.Now().Unix()-this.lastReadTime < 60 {
+		atomic.AddInt64(&this.rps, 1)
+	} else {
+		atomic.StoreInt64(&this.rps, 1)
+	}
+	atomic.StoreInt64(&this.lastReadTime, time.Now().Unix())
+}
+
 type Fdata struct {
 	FileName string   //所在文件名
 	CurPoint int64    //当前指针
 	f        *os.File //
 	idxf     *os.File //
 	lock     *sync.RWMutex
+	rb       *ReadBean
 }
 
 //func (this *Fdata) GetCurrSegmentId() (Id int64) {
@@ -444,8 +489,13 @@ func (this *Fdata) CloseFile() {
 	this.f.Close()
 }
 
-func (this *Fdata) AppendData(bs []byte, offset int64) (err error) {
+func (this *Fdata) AppendData(bs []byte) (offset int64, size int32, err error) {
 	//	fmt.Println("AppendData==>", this.f.Name(), " ,", len(bs), " ,", offset)
+	if CF.Compress {
+		bs = compresseEncode(bs)
+	}
+	size = int32(len(bs))
+	offset = this.GetAndSetCurPoint(int64(size))
 	_, err = Append(this.f, bs, offset)
 	if err != nil {
 		panic(_ERR_CODE_APPEND_DATA)
@@ -469,6 +519,7 @@ func (this *Fdata) CloseAndDelete() {
 	this.idxf.Close()
 	os.Remove(filename)
 	os.Remove(idxfilename)
+	db.Del([]byte(fmt.Sprint(_dat_, filename[len(CF.FileData)+1:strings.Index(filename, ".")])))
 	return
 }
 
@@ -476,14 +527,23 @@ func (this *Fdata) GetData(md5Bean *Md5Bean) (bs []byte, err error) {
 	//	this.lock.RLock()
 	//	defer this.lock.RUnlock()
 	bs, err = ReadAt(this.f, int(md5Bean.Size), md5Bean.Offset)
+	if md5Bean.Compress {
+		bs, err = compresseDecode(bs)
+	}
+	this.rb.add()
 	return
 }
 
 func (this *Fdata) Compact(chip int32) (finish bool) {
 	defer catchError()
-	if this.f.Name() == fm.currFileName || this.FileSize() > int64(chip*10) {
+	if this.f.Name() == fm.currFileName || this.FileSize() > int64(chip*10) || this.rb.rps > CF.ReadPerSecond {
 		return
 	}
+	return this.strongCompact(chip)
+}
+
+func (this *Fdata) strongCompact(chip int32) (finish bool) {
+	defer catchError()
 	//	fmt.Println("Compact:", this)
 	bs, err := ioutil.ReadFile(this.idxf.Name())
 	if err == nil {
@@ -518,18 +578,20 @@ func (this *Fdata) Compact(chip int32) (finish bool) {
 //--------------------------------------------------------------------------------------------------------------------
 
 type Segment struct {
-	Id       int64  //文件ID号
-	Name     string //文件名
-	FileType string //文件类型
-	Md5      []byte //文件md5值
+	Id        int64  //文件ID号
+	Name      string //文件名
+	FileType  string //文件类型
+	Md5       []byte //文件md5值
+	ShardName string
 }
 
-func NewSegment(name string, filetype string, md5 []byte) (s *Segment) {
+func NewSegment(name string, filetype string, md5 []byte, shardname string) (s *Segment) {
 	//	fmt.Println(name, " | ", filetype)
 	s = new(Segment)
 	s.Name = name
 	s.FileType = filetype
 	s.Md5 = md5
+	s.ShardName = shardname
 	return
 }
 func Bytes2Segment(bs []byte) (s Segment) {
@@ -544,12 +606,12 @@ type Md5Bean struct {
 	Size     int32  //文件大小 字节
 	FileName string //所在文件名
 	QuoteNum int32  //引用数
-	//	IsZip    bool   //是否zip压缩
 	Sequence []byte //文件序号
+	Compress bool   //是否压缩
 }
 
-func NewMd5Bean(offset int64, size int32, filename string, sequence []byte) (mb *Md5Bean) {
-	mb = &Md5Bean{Offset: offset, Size: size, QuoteNum: 0, FileName: filename, Sequence: sequence}
+func NewMd5Bean(offset int64, size int32, filename string, sequence []byte, compress bool) (mb *Md5Bean) {
+	mb = &Md5Bean{Offset: offset, Size: size, QuoteNum: 0, FileName: filename, Sequence: sequence, Compress: compress}
 	return
 }
 
@@ -789,3 +851,31 @@ func _fingerprint(bs []byte) (dest string) {
 	ieee.Write(bs)
 	return hex.EncodeToString(ieee.Sum(nil))
 }
+
+func compresseEncode(src []byte) []byte {
+	return snappy.Encode(nil, src)
+}
+
+func compresseDecode(src []byte) (bs []byte, err error) {
+	return snappy.Decode(nil, src)
+}
+
+/*******************************************************************************/
+func SaveSlave(name string, bs []byte) {
+	db.Put([]byte(fmt.Sprint(_slave_, name)), bs)
+}
+
+func DelSlave(name string) {
+	db.Del([]byte(fmt.Sprint(_slave_, name)))
+}
+
+func SlaveList() (slavemap map[string][]byte) {
+	m := db.GetLike(_slave_)
+	slavemap = make(map[string][]byte, 0)
+	for k, v := range m {
+		slavemap[strings.Replace(k, _slave_, "", -1)] = v
+	}
+	return
+}
+
+/*******************************************************************************/
