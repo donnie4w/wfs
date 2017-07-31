@@ -65,4 +65,8 @@ wfs -addslave slave1:192.168.1.101:3434  增加分片 节点名slave1，地址�
 wfs -addslave slave2:192.168.1.102:3434  增加分片 节点名slave2，地址：192.168.1.102：3434 <br/>
 wfs -removeslave slave1  删除分片slave1		<br/>
 
+***
 
+### thrift客户端：
+1. [java : https://github.com/donnie4w/wfs-jclient](https://github.com/donnie4w/wfs-jclient)
+2. [go	 :https://github.com/donnie4w/wfs-goclient](https://github.com/donnie4w/wfs-goclient)
