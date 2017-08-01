@@ -87,7 +87,7 @@ func (t *ServiceImpl) WfsRead(uri string) (r *WfsFile, err error) {
 	//			r.FileBody = bs
 	//		}
 	//	}
-	r.FileBody, err = GetData(uri)
+	r.FileBody, err = getDataByName(uri)
 	return
 }
 

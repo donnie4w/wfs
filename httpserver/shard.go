@@ -276,7 +276,11 @@ func AppendData(bs []byte, name string, fileType string) (err error) {
 }
 
 func GetData(uri string) (retbs []byte, err error) {
-	uri3 := uri[3:]
+	return getDataByName(uri[3:])
+}
+
+func getDataByName(uri string) (retbs []byte, err error) {
+	uri3 := uri
 	name := uri3
 	arg := ""
 	if strings.Contains(uri3, "?") {
