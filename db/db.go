@@ -160,7 +160,7 @@ func (this *DB) GetLike(prefix string) (datamap map[string][]byte) {
 	if iter != nil {
 		datamap = make(map[string][]byte, 0)
 		for iter.Next() {
-			datamap[string(iter.Key())] = iter.Value()
+			datamap[string(iter.Key())], _ = this.Get(iter.Key())
 		}
 		iter.Release()
 	}

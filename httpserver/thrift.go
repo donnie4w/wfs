@@ -5,18 +5,20 @@
 package httpserver
 
 import (
-	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
-	. "github.com/donnie4w/wfs/conf"
-	. "github.com/donnie4w/wfs/httpserver/protocol"
-	//	"github.com/donnie4w/wfs/storge"
+	. "wfs/conf"
+
+	. "wfs/httpserver/protocol"
+
+	"github.com/apache/thrift/lib/go/thrift"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -32,7 +34,7 @@ func thandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		inProtocol := protocolFactory.GetProtocol(transport)
 		outProtocol := protocolFactory.GetProtocol(transport)
 		processor := NewIWfsProcessor(&ServiceImpl{r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]})
-		processor.Process(inProtocol, outProtocol)
+		processor.Process(context.Background(), inProtocol, outProtocol)
 	}
 }
 
@@ -40,7 +42,7 @@ type ServiceImpl struct {
 	ip string
 }
 
-func (t *ServiceImpl) WfsPost(wf *WfsFile) (r *WfsAck, err error) {
+func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err error) {
 	r = NewWfsAck()
 	status := int32(200)
 	defer func() {
@@ -64,7 +66,7 @@ func (t *ServiceImpl) WfsPost(wf *WfsFile) (r *WfsAck, err error) {
 
 // Parameters:
 //  - Name
-func (t *ServiceImpl) WfsRead(uri string) (r *WfsFile, err error) {
+func (t *ServiceImpl) WfsRead(ctx context.Context, uri string) (r *WfsFile, err error) {
 	r = NewWfsFile()
 	defer func() {
 		if er := recover(); er != nil {
@@ -93,7 +95,7 @@ func (t *ServiceImpl) WfsRead(uri string) (r *WfsFile, err error) {
 
 // Parameters:
 //  - Name
-func (t *ServiceImpl) WfsDel(name string) (r *WfsAck, err error) {
+func (t *ServiceImpl) WfsDel(ctx context.Context, name string) (r *WfsAck, err error) {
 	r = NewWfsAck()
 	status := int32(200)
 	defer func() {
@@ -113,7 +115,7 @@ func (t *ServiceImpl) WfsDel(name string) (r *WfsAck, err error) {
 
 // Parameters:
 //  - Wc
-func (t *ServiceImpl) WfsCmd(wc *WfsCmd) (r *WfsAck, err error) {
+func (t *ServiceImpl) WfsCmd(ctx context.Context, wc *WfsCmd) (r *WfsAck, err error) {
 	if t.ip != "127.0.0.1" {
 		return nil, errors.New(_403)
 	}
@@ -158,7 +160,7 @@ func wfsCmd(cmdkey CmdType, cmdvalue string) (er error) {
 	ck := string(cmdkey)
 	wc.CmdKey, wc.CmdValue = &ck, &cmdvalue
 	httpPostClient(fmt.Sprint("http://127.0.0.1:", CF.Port, "/thrift"), 15000, func(client *IWfsClient) {
-		wa, err := client.WfsCmd(wc)
+		wa, err := client.WfsCmd(context.Background(), wc)
 		if wa != nil {
 			fmt.Println(wa.GetDesc())
 		} else if err != nil {
@@ -172,21 +174,21 @@ func wfsPost(addr string, bs []byte, filename string, fileType string) (wa *WfsA
 	wf := NewWfsFile()
 	wf.FileBody, wf.FileType, wf.Name = bs, &fileType, &filename
 	httpPostClient(fmt.Sprint("http://", addr, "/thrift"), 5000, func(client *IWfsClient) {
-		wa, err = client.WfsPost(wf)
+		wa, err = client.WfsPost(context.Background(), wf)
 	})
 	return
 }
 
 func wfsRead(addr string, uri string) (wf *WfsFile, err error) {
 	httpPostClient(fmt.Sprint("http://", addr, "/thrift"), 5000, func(client *IWfsClient) {
-		wf, err = client.WfsRead(uri)
+		wf, err = client.WfsRead(context.Background(), uri)
 	})
 	return
 }
 
 func wfsDel(addr string, name string) (wa *WfsAck, err error) {
 	httpPostClient(fmt.Sprint("http://", addr, "/thrift"), 5000, func(client *IWfsClient) {
-		wa, err = client.WfsDel(name)
+		wa, err = client.WfsDel(context.Background(), name)
 	})
 	return
 }
@@ -196,7 +198,7 @@ func wfsPing(addr string) (wa *WfsAck, err error) {
 	ck := string(ping)
 	wc.CmdKey = &ck
 	httpPostClient(fmt.Sprint("http://", addr, "/thrift"), 5000, func(client *IWfsClient) {
-		wa, err = client.WfsCmd(wc)
+		wa, err = client.WfsCmd(context.Background(), wc)
 	})
 	return
 }
@@ -208,12 +210,11 @@ func httpPostClient(urlstr string, timeout int64, f func(*IWfsClient)) (err erro
 		}
 	}()
 	protocolFactory := thrift.NewTCompactProtocolFactory()
-	parsedURL, err := url.Parse(urlstr)
 	if err != nil {
 		return err
 	}
-	buf := make([]byte, 0, 1024)
-	transport := &THttpClient{nil, parsedURL, bytes.NewBuffer(buf), http.Header{}, timeout}
+	// transport := &thrift.NewTHttpClient{nil, parsedURL, bytes.NewBuffer(buf), http.Header{}, timeout}
+	transport, _ := thrift.NewTHttpClientWithOptions(urlstr, thrift.THttpClientOptions{&http.Client{Timeout: time.Duration(timeout)}})
 	client := NewIWfsClientFactory(transport, protocolFactory)
 	if err := transport.Open(); err != nil {
 		return err

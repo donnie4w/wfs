@@ -14,8 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "github.com/donnie4w/wfs/conf"
-	"github.com/donnie4w/wfs/storge"
+	. "wfs/conf"
+
+	"wfs/storge"
 )
 
 /*******************************************************************************/

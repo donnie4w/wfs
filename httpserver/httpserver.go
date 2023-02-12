@@ -12,12 +12,15 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strconv"
-	//	"strings"
+
 	"time"
 
+	. "wfs/conf"
+
+	"wfs/storge"
+
 	"github.com/donnie4w/go-logger/logger"
-	. "github.com/donnie4w/wfs/conf"
-	"github.com/donnie4w/wfs/storge"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -225,6 +228,7 @@ func Start() {
 		if CF.Pprof > 0 {
 			go http.ListenAndServe(fmt.Sprint(CF.Bind, ":", CF.Pprof), nil)
 		}
+		fmt.Println(CF.Port)
 		srv := &http.Server{
 			ReadTimeout: time.Duration(CF.ServerReadTimeout) * time.Second,
 			Addr:        fmt.Sprint(CF.Bind, ":", CF.Port),
