@@ -18,16 +18,12 @@ import (
 	. "wfs/httpserver/protocol"
 
 	"github.com/apache/thrift/lib/go/thrift"
-
-	"github.com/julienschmidt/httprouter"
+	// "github.com/julienschmidt/httprouter"
 )
 
-func thandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println("thandler err:", err)
-		}
-	}()
+// func thandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func thandler(w http.ResponseWriter, r *http.Request) {
+	defer myRecover()
 	if "POST" == r.Method {
 		protocolFactory := thrift.NewTCompactProtocolFactory()
 		transport := thrift.NewStreamTransport(r.Body, w)
@@ -68,11 +64,7 @@ func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err 
 //  - Name
 func (t *ServiceImpl) WfsRead(ctx context.Context, uri string) (r *WfsFile, err error) {
 	r = NewWfsFile()
-	defer func() {
-		if er := recover(); er != nil {
-			err = errors.New(fmt.Sprint(er))
-		}
-	}()
+	defer myRecover()
 	//	name := uri
 	//	arg := ""
 	//	if strings.Contains(uri, "?") {

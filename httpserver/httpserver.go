@@ -7,6 +7,7 @@ package httpserver
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
@@ -19,9 +20,10 @@ import (
 
 	"wfs/storge"
 
-	"github.com/donnie4w/go-logger/logger"
+	"github.com/donnie4w/simplelog/logging"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/donnie4w/tlnet"
+	// "github.com/julienschmidt/httprouter"
 )
 
 type CmdType string
@@ -50,7 +52,8 @@ const (
 //	return
 //}
 
-func read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// func read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func read(hc *tlnet.HttpContext) {
 	//	uri := r.RequestURI
 	//	uri = uri[3:]
 	//	name := uri
@@ -74,11 +77,15 @@ func read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	//		w.Write([]byte("404"))
 	//	}
 
-	bs, err := GetData(r.RequestURI)
+	// bs, err := GetData(r.RequestURI)
+	bs, err := GetData(hc.Request().RequestURI)
 	if err == nil {
-		w.Write(bs)
+		// w.Write(bs)
+		hc.ResponseBytes(0, bs)
 	} else {
-		w.Write([]byte("404"))
+		// w.Write([]byte("404"))
+		hc.Writer().WriteHeader(404)
+		// hc.ResponseString("404")
 	}
 
 	//	if CF.Keepalive > 0 {
@@ -94,30 +101,74 @@ func read(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	//	}
 }
 
-func upload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	file, handler, err := r.FormFile("file")
+// func upload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// 	file, handler, err := r.FormFile("file")
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 	}
+// 	defer file.Close()
+// 	buf := new(bytes.Buffer)
+// 	by := make([]byte, 512)
+// 	for {
+// 		if n, err := file.Read(by); err == nil {
+// 			buf.Write(by[:n])
+// 			if int64(buf.Len()) > CF.MaxFileSize {
+// 				fmt.Fprint(w, "file too large")
+// 				return
+// 			}
+// 		} else {
+// 			break
+// 		}
+// 	}
+// 	bs := buf.Bytes()
+// 	if len(bs) > 0 {
+// 		name := ""
+// 		uri := r.RequestURI
+// 		if len(uri) > 2 {
+// 			name = uri[3:]
+// 		}
+// 		if name == "" {
+// 			name = handler.Filename
+// 		}
+// 		//	err := storge.AppendData(bs, name, "")
+// 		err := AppendData(bs, name, "")
+// 		if err == nil {
+// 			fmt.Fprint(w, "ok:", len(bs), " ", name)
+// 		} else {
+// 			fmt.Fprint(w, err.Error())
+// 		}
+// 	}
+// }
+
+func upload(hc *tlnet.HttpContext) {
+	defer myRecover()
+	hc.MaxBytesReader(CF.MaxFileSize)
+	file, handler, err := hc.FormFile("file")
 	if err != nil {
-		fmt.Println(err)
+		logging.Error(err)
 		return
 	}
 	defer file.Close()
-	buf := new(bytes.Buffer)
-	by := make([]byte, 512)
-	for {
-		if n, err := file.Read(by); err == nil {
-			buf.Write(by[:n])
-			if int64(buf.Len()) > CF.MaxFileSize {
-				fmt.Fprint(w, "file too large")
-				return
-			}
-		} else {
-			break
-		}
-	}
+	// buf := new(bytes.Buffer)
+	// by := make([]byte, 512)
+	// for {
+	// 	if n, err := file.Read(by); err == nil {
+	// 		buf.Write(by[:n])
+	// 		if int64(buf.Len()) > CF.MaxFileSize {
+	// 			fmt.Fprint(w, "file too large")
+	// 			return
+	// 		}
+	// 	} else {
+	// 		break
+	// 	}
+	// }
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, file)
 	bs := buf.Bytes()
 	if len(bs) > 0 {
 		name := ""
-		uri := r.RequestURI
+		uri := hc.Request().RequestURI
 		if len(uri) > 2 {
 			name = uri[3:]
 		}
@@ -127,16 +178,19 @@ func upload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		//	err := storge.AppendData(bs, name, "")
 		err := AppendData(bs, name, "")
 		if err == nil {
-			fmt.Fprint(w, "ok:", len(bs), " ", name)
+			// fmt.Fprint(w, "ok:", len(bs), " ", name)
+			hc.ResponseString(fmt.Sprint("ok:", len(bs), " ", name))
 		} else {
-			fmt.Fprint(w, err.Error())
+			// fmt.Fprint(w, err.Error())
+			hc.ResponseString(err.Error())
 		}
 	}
 }
 
-func del(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	name := ""
-	uri := r.RequestURI
+// func del(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func del(hc *tlnet.HttpContext) {
+	var name string
+	uri := hc.Request().RequestURI
 	if len(uri) > 2 {
 		name = uri[3:]
 	}
@@ -144,9 +198,11 @@ func del(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		//		err := storge.DelData(name)
 		err := DelData(name)
 		if err == nil {
-			fmt.Fprintf(w, "delete ok, %s!\n", name)
+			// fmt.Fprintf(w, "delete ok, %s!\n", name)
+			hc.ResponseString(fmt.Sprint("delete ok,", name))
 		} else {
-			fmt.Fprintf(w, "delete error, %s!\n", name, " | ", err.Error())
+			// fmt.Fprintf(w, "delete error, %s!\n", name, " | ", err.Error())
+			hc.ResponseString(fmt.Sprint("delete error,", name, " | ", err.Error()))
 		}
 	}
 }
@@ -161,16 +217,20 @@ func del(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 //	fmt.Fprintf(w, "")
 //}
 
-func check(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// func check(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func check(hc *tlnet.HttpContext) {
+	r := hc.Request()
 	if r.Body != nil {
 		defer r.Body.Close()
 		bs, _ := ioutil.ReadAll(r.Body)
 		name := string(bs)
 		b := storge.Exsit(name)
 		if b {
-			w.Write([]byte{1})
+			// w.Write([]byte{1})
+			hc.ResponseString("1")
 		} else {
-			w.Write([]byte{0})
+			// w.Write([]byte{0})
+			hc.ResponseString("0")
 		}
 	}
 }
@@ -216,32 +276,54 @@ func Start() {
 			wfsCmd(ping, Cmd.Ping)
 		}
 	} else {
-		storge.Init()
-		router := httprouter.New()
-		router.POST("/thrift", thandler)
-		//		router.POST("/ping", ping)
-		router.GET("/r/*.r", read)
-		router.POST("/c", check)
-		router.POST("/u/*.r", upload)
-		router.POST("/u", upload)
-		router.DELETE("/d/*.r", del)
+
 		if CF.Pprof > 0 {
 			go http.ListenAndServe(fmt.Sprint(CF.Bind, ":", CF.Pprof), nil)
 		}
-		fmt.Println(CF.Port)
-		srv := &http.Server{
-			ReadTimeout: time.Duration(CF.ServerReadTimeout) * time.Second,
-			Addr:        fmt.Sprint(CF.Bind, ":", CF.Port),
-			Handler:     router,
-		}
+
+		storge.Init()
+		// router := httprouter.New()
+		// router.POST("/thrift", thandler)
+		// //		router.POST("/ping", ping)
+		// router.GET("/r/*.r", read)
+		// router.POST("/c", check)
+		// router.POST("/u/*.r", upload)
+		// router.POST("/u", upload)
+		// router.DELETE("/d/*.r", del)
+
+		// fmt.Println(CF.Port)
+		// srv := &http.Server{
+		// 	ReadTimeout: time.Duration(CF.ServerReadTimeout) * time.Second,
+		// 	Addr:        fmt.Sprint(CF.Bind, ":", CF.Port),
+		// 	Handler:     router,
+		// }
+		// savePort(CF.Port)
+		// Init()
+		// fmt.Println("wfs start,listen:", CF.Port)
+		// err := srv.ListenAndServe()
+
 		savePort(CF.Port)
 		Init()
-		fmt.Println("wfs start,listen:", CF.Port)
-		err := srv.ListenAndServe()
+		tl := tlnet.NewTlnet()
+		tl.AddHandlerFunc("/thrift", nil, thandler)
+		tl.POST("/u/", upload)
+		tl.GET("/r/", read)
+		tl.POST("/c", check)
+		tl.POST("/u", upload)
+		tl.DELETE("/d/", del)
+		tl.ReadTimeout(time.Duration(CF.ServerReadTimeout) * time.Second)
+		logging.Info("wfs start,listen:", CF.Port)
+		err := tl.HttpStart(fmt.Sprint(CF.Bind, ":", CF.Port))
 		if err != nil {
-			logger.Error("httpserver start error:", err.Error())
+			logging.Error("httpserver start error:", err.Error())
 			os.Exit(1)
 		}
+	}
+}
+
+func myRecover() {
+	if er := recover(); er != nil {
+		logging.Error(er)
 	}
 }
 
