@@ -12,19 +12,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	. "wfs/conf"
-
 	. "wfs/httpserver/protocol"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	// "github.com/julienschmidt/httprouter"
 )
 
 // func thandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 func thandler(w http.ResponseWriter, r *http.Request) {
 	defer myRecover()
-	if "POST" == r.Method {
+	if http.MethodPost == strings.ToUpper(r.Method) {
 		protocolFactory := thrift.NewTCompactProtocolFactory()
 		transport := thrift.NewStreamTransport(r.Body, w)
 		inProtocol := protocolFactory.GetProtocol(transport)
@@ -50,7 +47,7 @@ func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err 
 	}()
 	bs := wf.GetFileBody()
 	if int64(len(bs)) > CF.MaxFileSize {
-		return r, errors.New(fmt.Sprint("too large:", len(bs)))
+		return r, errors.New(fmt.Sprint("file too large:", len(bs)))
 	}
 	//	err = storge.AppendData(bs, wf.GetName(), wf.GetFileType())
 	err = AppendData(bs, wf.GetName(), wf.GetFileType())
@@ -63,8 +60,8 @@ func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err 
 // Parameters:
 //  - Name
 func (t *ServiceImpl) WfsRead(ctx context.Context, uri string) (r *WfsFile, err error) {
-	r = NewWfsFile()
 	defer myRecover()
+	r = NewWfsFile()
 	//	name := uri
 	//	arg := ""
 	//	if strings.Contains(uri, "?") {

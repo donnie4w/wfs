@@ -13,17 +13,12 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strconv"
-
 	"time"
-
 	. "wfs/conf"
-
 	"wfs/storge"
 
 	"github.com/donnie4w/simplelog/logging"
-
 	"github.com/donnie4w/tlnet"
-	// "github.com/julienschmidt/httprouter"
 )
 
 type CmdType string
@@ -146,7 +141,8 @@ func upload(hc *tlnet.HttpContext) {
 	hc.MaxBytesReader(CF.MaxFileSize)
 	file, handler, err := hc.FormFile("file")
 	if err != nil {
-		logging.Error(err)
+		// logging.Error(err)
+		hc.ResponseString(err.Error())
 		return
 	}
 	defer file.Close()

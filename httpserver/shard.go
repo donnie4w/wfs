@@ -13,10 +13,10 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
 	. "wfs/conf"
-
 	"wfs/storge"
+
+	"github.com/donnie4w/simplelog/logging"
 )
 
 /*******************************************************************************/
@@ -95,6 +95,7 @@ func (this *SlaveFactory) _addSlave(name, addr string, weight int32) (sb *SlaveB
 	if name != "master" {
 		_, err = this.ping(addr)
 		if err != nil {
+			logging.Error("ping ", addr, " err:", err)
 			return
 		}
 	} else {
@@ -280,17 +281,29 @@ func GetData(uri string) (retbs []byte, err error) {
 	return getDataByName(uri[3:])
 }
 
+func _getIndexFromStr(s, _i string) (i int) {
+	for i = len(s) - 1; i >= 0; i-- {
+		if s[i:i+1] == _i {
+			return
+		}
+	}
+	return
+}
+
 func getDataByName(uri string) (retbs []byte, err error) {
 	uri3 := uri
 	name := uri3
 	arg := ""
-	if strings.Contains(uri3, "?") {
-		index := strings.Index(uri3, "?")
+	// if strings.Contains(uri3, "?") {
+	// 	index := strings.Index(uri3, "?")
+	// 	name = uri3[:index]
+	// 	arg = uri3[index:]
+	// }
+	if index := _getIndexFromStr(uri3, "?"); index > 0 {
 		name = uri3[:index]
 		arg = uri3[index:]
 	}
 	bs, shardname, err := storge.GetData(name)
-	//	fmt.Println(len(bs), "  ", shardname)
 	if err == nil && bs != nil {
 		if strings.HasPrefix(arg, "?imageView2") {
 			spec := NewSpec(bs, arg)
@@ -310,6 +323,9 @@ func getDataByName(uri string) (retbs []byte, err error) {
 		} else {
 			fmt.Println("err:", shardname, " is not exist")
 		}
+	}
+	if err != nil {
+		err = errors.New(_404)
 	}
 	return
 }
