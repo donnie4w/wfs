@@ -1,13 +1,10 @@
 # wfs是文件存储系统
-主要是解决海量小文件存储的问题,服务器对海量小文件独立存储会出现许多问题
-
+主要是解决海量小文件存储的问题,服务器对海量小文件独立存储会出现许多问题<br>
+单个wfs可以单独运行 ，也可以多个wfs集群
 ***
 
-# 介绍
-单个wfs可以单独运行 ，也可以多个wfs集群
-
-#支持
- **上传文件，删除文件，拉取文件**
+# 支持
+**上传文件，删除文件，拉取文件**
 ** 对图片文件输出大小处理：**
 如：1.jpg?imageView2/0/w/100/h/100 输出宽高 100px的图片
 
@@ -53,15 +50,15 @@
 
 [以python客户端为例](https://github.com/donnie4w/wfs-pyclient "以python客户端为例")：
 
-    	url ：http://*****:3434/thrift  固定形象
-    	wfs = WfsClient("http://127.0.0.1:3434/thrift")
-    	bs= getFileBytes("1.jpg")  获取图片
-    	wfs.PostFile(bs,"aa/head.jpg","")   上传图片，并自定义图片路径aa/head.jpg
-    	f=wfs.GetFile("aa/head.jpg") 拉取图片 aa/head.jpg 资源
-    	print(len(f.fileBody))   
-    	saveFileByBytes(f.fileBody,"22_1.jpg")
-    	wfs.DelFile("aa/head.jpg")   删除图片
-    	wfs.Close()
+  	url ：http://*****:3434/thrift  固定形象
+  	wfs = WfsClient("http://127.0.0.1:3434/thrift")
+  	bs= getFileBytes("1.jpg")  获取图片
+  	wfs.PostFile(bs,"aa/head.jpg","")   上传图片，并自定义图片路径aa/head.jpg
+  	f=wfs.GetFile("aa/head.jpg") 拉取图片 aa/head.jpg 资源
+  	print(len(f.fileBody))   
+  	saveFileByBytes(f.fileBody,"22_1.jpg")
+  	wfs.DelFile("aa/head.jpg")   删除图片
+  	wfs.Close()
 
 ***
 
