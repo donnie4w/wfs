@@ -50,7 +50,7 @@
 
 [以python客户端为例](https://github.com/donnie4w/wfs-pyclient "以python客户端为例")：
 
-  	url ：http://*****:3434/thrift  固定形象
+  	url ：http://*****:3434/thrift  固定格式
   	wfs = WfsClient("http://127.0.0.1:3434/thrift")
   	bs= getFileBytes("1.jpg")  获取图片
   	wfs.PostFile(bs,"aa/head.jpg","")   上传图片，并自定义图片路径aa/head.jpg
