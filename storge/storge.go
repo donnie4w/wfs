@@ -136,7 +136,6 @@ func GetData(name string) (bs []byte, shardname string, er error) {
 		md5Bean, err := DBGetMd5Bean(md5key)
 		if err == nil {
 			filename := md5Bean.FileName
-			//			fmt.Println("GetData:", filename)
 			fdata := fm.GetFdataByName(filename)
 			bs, er = fdata.GetData(&md5Bean)
 			//			bs = bs[:len(bs)-8]

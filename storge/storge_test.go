@@ -4,11 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
+
 	//	"io"
 	"testing"
 	"time"
 
-	. "github.com/donnie4w/wfs/db"
+	. "wfs/db"
 )
 
 func _Test_lockstring(t *testing.T) {

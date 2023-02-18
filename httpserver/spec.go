@@ -22,7 +22,6 @@ type Spec struct {
 func NewSpec(bs []byte, arg string) (spec *Spec) {
 	spec = new(Spec)
 	spec.src = bs
-	//	fmt.Println("arg===>", arg)
 	if strings.HasPrefix(arg, "?imageView2") {
 		ss := strings.Split(arg, "/")
 		if ss != nil && len(ss) > 3 {
