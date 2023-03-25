@@ -41,8 +41,7 @@ func NewSlaveBean(name, addr string, weight int32) *SlaveBean {
 }
 
 type SlaveFactory struct {
-	mu *sync.RWMutex
-	//	slaveChan  chan string
+	mu         *sync.RWMutex
 	slaveMap   map[string]*SlaveBean
 	slavevalid map[string]byte
 	slaveSlb   map[string]byte
@@ -105,9 +104,6 @@ func (this *SlaveFactory) _addSlave(name, addr string, weight int32) (sb *SlaveB
 	this.slaveMap[name] = sb
 	this.slavevalid[name] = 0
 	this.slaveSlb[name] = 0
-	//	go func() {
-	//		this.slaveChan <- name
-	//	}()
 	return
 }
 
@@ -118,15 +114,11 @@ func (this *SlaveFactory) _puts(sb *SlaveBean) (err error) {
 	_, err = this.ping(sb.Addr)
 	if err == nil {
 		this.slavevalid[sb.Name] = 0
-		//		go func() {
-		//			this.slaveChan <- sb.Name
-		//		}()
 	}
 	return
 }
 
 func (this *SlaveFactory) setWeight(name string, weight int32) {
-	//	fmt.Println("setWeight:", name, " ", weight)
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	if sl, ok := this.slaveMap[name]; ok {
@@ -203,20 +195,10 @@ LOOP:
 			i++
 		}
 		delete(this.slaveSlb, name)
-		//		name := <-this.slaveChan
-		//		var ok bool
 		if _, ok := this.slavevalid[name]; !ok {
 			goto LOOP
 		}
 		if _sb, ok := this.slaveMap[name]; ok {
-			//			if sb.WeightCount > 0 {
-			//				go func() {
-			//					this.slaveChan <- sb.Name
-			//				}()
-			//			} else {
-			//				atomic.StoreInt32(&sb.WeightCount, sb.Weight)
-			//				goto LOOP
-			//			}
 			if _sb.WeightCount <= 0 {
 				goto LOOP
 			} else {
@@ -227,15 +209,6 @@ LOOP:
 			goto LOOP
 		}
 	} else {
-		//		for name, _ := range this.slavevalid {
-		//			go func() {
-		//				this.slaveChan <- name
-		//			}()
-		//		}
-		//		if len(this.slaveChan) > 0 {
-		//			goto LOOP
-		//		}
-
 		for k, _ := range this.slavevalid {
 			if v, ok := this.slaveMap[k]; ok {
 				if ok && v.WeightCount > 0 {
@@ -294,11 +267,6 @@ func getDataByName(uri string) (retbs []byte, err error) {
 	uri3 := uri
 	name := uri3
 	arg := ""
-	// if strings.Contains(uri3, "?") {
-	// 	index := strings.Index(uri3, "?")
-	// 	name = uri3[:index]
-	// 	arg = uri3[index:]
-	// }
 	if index := _getIndexFromStr(uri3, "?"); index > 0 {
 		name = uri3[:index]
 		arg = uri3[index:]

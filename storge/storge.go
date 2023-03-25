@@ -44,7 +44,6 @@ func Init() {
 }
 
 func AppendData(bs []byte, name string, fileType string, shardname string) (err error) {
-	//	defer catchError()
 	defer func() {
 		if er := recover(); er != nil {
 			fmt.Println(string(debug.Stack()))
@@ -71,16 +70,6 @@ func AppendData(bs []byte, name string, fileType string, shardname string) (err 
 	mb := fm.GetMd5Bean(md5key)
 	if mb == nil {
 		f := fm.getFData()
-		//		sequence := fm.getSequence()
-		//		bss := make([]byte, len(bs)+len(sequence))
-		//		copy(bss, bs)
-		//		copy(bss[len(bs):], sequence)
-		//		offset := f.GetAndSetCurPoint(int64(len(bss)))
-		//		mb = NewMd5Bean(offset, int32(len(bss)), f.FileName, sequence)
-		//		err = f.AppendData(bss, offset)
-		//		err = f.WriteIdxMd5(md5key)
-		//		err = DBPut(sequence, md5key)
-		//		offset := f.GetAndSetCurPoint(int64(len(bs)))
 		offset, size, er := f.AppendData(bs)
 		if er != nil {
 			return er
@@ -92,8 +81,6 @@ func AppendData(bs []byte, name string, fileType string, shardname string) (err 
 		}
 	}
 	mb.AddQuote()
-	//	fmt.Println("append:", name)
-	//	fmt.Println("quote===>", mb.QuoteNum)
 	err = DBPutMd5Bean(md5key, *mb)
 	return
 }
@@ -104,7 +91,6 @@ func _AppendData(bs []byte, f *Fdata) (err error) {
 		return er
 	}
 	md5key := MD5(bs)
-	//	offset := f.GetAndSetCurPoint(int64(len(bs)))
 	mb := NewMd5Bean(offset, size, f.FileName, nil, CF.Compress)
 	err = f.WriteIdxMd5(md5key)
 	if err != nil {
@@ -490,7 +476,6 @@ func (this *Fdata) CloseFile() {
 }
 
 func (this *Fdata) AppendData(bs []byte) (offset int64, size int32, err error) {
-	//	fmt.Println("AppendData==>", this.f.Name(), " ,", len(bs), " ,", offset)
 	if CF.Compress {
 		bs = compresseEncode(bs)
 	}
@@ -509,7 +494,6 @@ func (this *Fdata) WriteIdxMd5(md5key []byte) (err error) {
 }
 
 func (this *Fdata) CloseAndDelete() {
-	fmt.Println("CloseAndDelete:", this)
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	defer catchError()
@@ -524,8 +508,6 @@ func (this *Fdata) CloseAndDelete() {
 }
 
 func (this *Fdata) GetData(md5Bean *Md5Bean) (bs []byte, err error) {
-	//	this.lock.RLock()
-	//	defer this.lock.RUnlock()
 	bs, err = ReadAt(this.f, int(md5Bean.Size), md5Bean.Offset)
 	if md5Bean.Compress {
 		bs, err = compresseDecode(bs)
@@ -544,7 +526,6 @@ func (this *Fdata) Compact(chip int32) (finish bool) {
 
 func (this *Fdata) strongCompact(chip int32) (finish bool) {
 	defer catchError()
-	//	fmt.Println("Compact:", this)
 	bs, err := ioutil.ReadFile(this.idxf.Name())
 	if err == nil {
 		newfdata := fm._newFdata(false)
@@ -780,28 +761,6 @@ func EncodeMd5(md5 Md5Bean) (bs []byte) {
 	return
 }
 
-//-------------------------------------------------
-//func DecoderOctal(data []byte) (ob OctalBean) {
-//	var network bytes.Buffer
-//	_, er := network.Write(data)
-//	dec := gob.NewDecoder(&network)
-//	if er == nil {
-//		er = dec.Decode(&ob)
-//		fmt.Println("ob===>", ob)
-//	} else {
-//		fmt.Println("er==>", er.Error())
-//	}
-//	return
-//}
-
-//func EncodeOctal(ob OctalBean) (bs []byte) {
-//	var network bytes.Buffer
-//	enc := gob.NewEncoder(&network)
-//	enc.Encode(ob)
-//	bs = network.Bytes()
-//	return
-//}
-
 //--------------------------------------------------------------------------------------------------------------------
 
 func MD5(data []byte) []byte {
@@ -836,7 +795,6 @@ func _compact() {
 	if m != nil {
 		for k, v := range m {
 			chip := Bytes2Octal(v)
-			//			fmt.Println("scan compact key:", k, " ", chip)
 			filename := strings.Replace(k, _del_, "", -1)
 			fdata := fm.GetFdataByName(filename)
 			if fdata.Compact(chip) {

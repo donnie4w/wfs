@@ -62,22 +62,6 @@ func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err 
 func (t *ServiceImpl) WfsRead(ctx context.Context, uri string) (r *WfsFile, err error) {
 	defer myRecover()
 	r = NewWfsFile()
-	//	name := uri
-	//	arg := ""
-	//	if strings.Contains(uri, "?") {
-	//		index := strings.Index(uri, "?")
-	//		name = uri[:index]
-	//		arg = uri[index:]
-	//	}
-	//	bs, err := storge.GetData(name)
-	//	if err == nil {
-	//		if strings.HasPrefix(arg, "?imageView2") {
-	//			spec := NewSpec(bs, arg)
-	//			r.FileBody = spec.GetData()
-	//		} else {
-	//			r.FileBody = bs
-	//		}
-	//	}
 	r.FileBody, err = getDataByName(uri)
 	return
 }
@@ -94,7 +78,6 @@ func (t *ServiceImpl) WfsDel(ctx context.Context, name string) (r *WfsAck, err e
 		}
 		r.Status = &status
 	}()
-	//	err = storge.DelData(name)
 	err = DelData(name)
 	if err != nil {
 		status = 500
@@ -110,7 +93,6 @@ func (t *ServiceImpl) WfsCmd(ctx context.Context, wc *WfsCmd) (r *WfsAck, err er
 	}
 	cmdkey := wc.GetCmdKey()
 	cmdvalue := wc.GetCmdValue()
-	//	fmt.Println("wfscmd:", cmdkey, " , ", cmdvalue)
 	r = NewWfsAck()
 	ret := _200
 	switch CmdType(cmdkey) {
@@ -202,7 +184,6 @@ func httpPostClient(urlstr string, timeout int64, f func(*IWfsClient)) (err erro
 	if err != nil {
 		return err
 	}
-	// transport := &thrift.NewTHttpClient{nil, parsedURL, bytes.NewBuffer(buf), http.Header{}, timeout}
 	transport, _ := thrift.NewTHttpClientWithOptions(urlstr, thrift.THttpClientOptions{&http.Client{Timeout: time.Duration(timeout)}})
 	client := NewIWfsClientFactory(transport, protocolFactory)
 	if err := transport.Open(); err != nil {
