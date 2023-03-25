@@ -6,12 +6,15 @@ package conf
 
 import (
 	"flag"
+
+	"github.com/donnie4w/simplelog/logging"
 )
 
 var _version_ = "0.0.2"
 
 var CF = new(confbean)
 var Cmd = new(cmdBean)
+var Logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
 
 type confbean struct {
 	Port              int

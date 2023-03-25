@@ -17,11 +17,13 @@ import (
 	. "wfs/conf"
 	"wfs/storge"
 
+	"wfs/conf"
+
 	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/tlnet"
 )
 
-var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
+var logger = conf.Logger
 
 type CmdType string
 

@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/donnie4w/simplelog/logging"
+	"wfs/conf"
 
 	"os"
 
@@ -18,7 +18,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
+var logger = conf.Logger
 var _recover_ = "_recover_"
 
 type DB struct {

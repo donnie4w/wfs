@@ -36,6 +36,7 @@ var _ERR_CODE_APPEND_DATA = 501
 
 var db *DB
 var fm *FileManager
+var logger = Logger
 
 func Init() {
 	db = NewDB(CF.FileData+"/fsdb", true)
@@ -46,7 +47,7 @@ func Init() {
 func AppendData(bs []byte, name string, fileType string, shardname string) (err error) {
 	defer func() {
 		if er := recover(); er != nil {
-			fmt.Println(string(debug.Stack()))
+			logger.Error(er)
 		}
 	}()
 	if CF.Readonly {
