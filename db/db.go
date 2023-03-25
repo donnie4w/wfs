@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/donnie4w/simplelog/logging"
+
 	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -16,6 +18,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
 var _recover_ = "_recover_"
 
 type DB struct {
@@ -46,7 +49,7 @@ func (this *DB) openDB() {
 	var err error
 	this.db, err = leveldb.OpenFile(this.dbname, o)
 	if err != nil {
-		fmt.Println("openDB err:", err.Error())
+		logger.Error("system start error:", err.Error())
 		os.Exit(0)
 	}
 }

@@ -21,6 +21,8 @@ import (
 	"github.com/donnie4w/tlnet"
 )
 
+var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
+
 type CmdType string
 
 const (
@@ -165,10 +167,10 @@ func Start() {
 		tl.POST("/u", upload)
 		tl.DELETE("/d/", del)
 		tl.ReadTimeout(time.Duration(CF.ServerReadTimeout) * time.Second)
-		logging.Info("wfs start,listen:", CF.Port)
+		logger.Info("wfs start,listen:", CF.Port)
 		err := tl.HttpStart(fmt.Sprint(CF.Bind, ":", CF.Port))
 		if err != nil {
-			logging.Error("httpserver start error:", err.Error())
+			logger.Error("httpserver start error:", err.Error())
 			os.Exit(1)
 		}
 	}
@@ -176,7 +178,7 @@ func Start() {
 
 func myRecover() {
 	if er := recover(); er != nil {
-		logging.Error(er)
+		logger.Error(er)
 	}
 }
 

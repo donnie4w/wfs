@@ -19,9 +19,6 @@ import (
 	"github.com/donnie4w/simplelog/logging"
 )
 
-/*******************************************************************************/
-/*******************************************************************************/
-
 var Factory *SlaveFactory
 
 func Init() {
@@ -72,7 +69,6 @@ func (this *SlaveFactory) lenght() int {
 }
 
 func (this *SlaveFactory) addSlave(name, addr string) (err error) {
-	//	fmt.Println("addSlave:", name, " ", addr)
 	if strings.HasPrefix(name, "_") {
 		err = errors.New("can't start with '_'")
 		return
@@ -353,15 +349,18 @@ func (this *SlaveFactory) getAll() (sbs []*SlaveBean) {
 }
 
 func (this *SlaveFactory) hbtask() {
+	ticker := time.NewTicker(15 * time.Second)
 	for {
-		time.Sleep(15 * time.Second)
-		sbs := this.getAll()
-		for _, v := range sbs {
-			_, err := this.ping(v.Addr)
-			if err == nil {
-				this.addHbs(v.Name)
-			} else {
-				this.delHbs(v.Name)
+		select {
+		case <-ticker.C:
+			sbs := this.getAll()
+			for _, v := range sbs {
+				_, err := this.ping(v.Addr)
+				if err == nil {
+					this.addHbs(v.Name)
+				} else {
+					this.delHbs(v.Name)
+				}
 			}
 		}
 	}

@@ -18,17 +18,14 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
-// func thandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 func thandler(w http.ResponseWriter, r *http.Request) {
 	defer myRecover()
-	if http.MethodPost == strings.ToUpper(r.Method) {
-		protocolFactory := thrift.NewTCompactProtocolFactory()
-		transport := thrift.NewStreamTransport(r.Body, w)
-		inProtocol := protocolFactory.GetProtocol(transport)
-		outProtocol := protocolFactory.GetProtocol(transport)
-		processor := NewIWfsProcessor(&ServiceImpl{r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]})
-		processor.Process(context.Background(), inProtocol, outProtocol)
-	}
+	protocolFactory := thrift.NewTCompactProtocolFactory()
+	transport := thrift.NewStreamTransport(r.Body, w)
+	inProtocol := protocolFactory.GetProtocol(transport)
+	outProtocol := protocolFactory.GetProtocol(transport)
+	processor := NewIWfsProcessor(&ServiceImpl{r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]})
+	processor.Process(context.Background(), inProtocol, outProtocol)
 }
 
 type ServiceImpl struct {
@@ -49,7 +46,6 @@ func (t *ServiceImpl) WfsPost(ctx context.Context, wf *WfsFile) (r *WfsAck, err 
 	if int64(len(bs)) > CF.MaxFileSize {
 		return r, errors.New(fmt.Sprint("file too large:", len(bs)))
 	}
-	//	err = storge.AppendData(bs, wf.GetName(), wf.GetFileType())
 	err = AppendData(bs, wf.GetName(), wf.GetFileType())
 	if err != nil {
 		status = 500
@@ -184,7 +180,7 @@ func httpPostClient(urlstr string, timeout int64, f func(*IWfsClient)) (err erro
 	if err != nil {
 		return err
 	}
-	transport, _ := thrift.NewTHttpClientWithOptions(urlstr, thrift.THttpClientOptions{&http.Client{Timeout: time.Duration(timeout)}})
+	transport, _ := thrift.NewTHttpClientWithOptions(urlstr, thrift.THttpClientOptions{&http.Client{Timeout: time.Duration(timeout) * time.Second}})
 	client := NewIWfsClientFactory(transport, protocolFactory)
 	if err := transport.Open(); err != nil {
 		return err
