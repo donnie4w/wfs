@@ -1,3 +1,7 @@
+/**
+ * Copyright 2017 wfs Author. All Rights Reserved.
+ * email: donnie4w@gmail.com
+ */
 package httpserver
 
 import (

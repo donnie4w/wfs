@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	. "wfs/client"
 	. "wfs/conf"
-	. "wfs/httpserver/protocol"
 
 	"github.com/apache/thrift/lib/go/thrift"
 )
