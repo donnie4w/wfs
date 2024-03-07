@@ -1,4 +1,4 @@
-### WFS文件存储系统，主要解决海量小文件的存储问题 [[English document]](https://github.com/donnie4w/wfs/blob/main/README.md "[English document]")
+### WFS文件存储系统，主要解决海量小文件的存储问题 [[English document]](https://github.com/donnie4w/wfs/blob/master/README.md "[English document]")
 
 ###### wfs有非常高效的读写效率，在高并发压力下，wfs存储引擎读写响应时间可以达到微秒级别.
 
@@ -113,37 +113,48 @@
 #### wfs内置图片基础处理
 
 原图:   https://tlnet.top/statics/test/wfs_test.jpg
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg)
 
 
 - 裁剪正中部分，等比缩小生成200x200缩略图   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200)
 
 - 宽度固定为200px，高度等比缩小，生成宽200缩略图    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200)
 
 - 高度固定为200px，宽度等比缩小，生成高200缩略图    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200)
 
 - 高斯模糊，生成模糊程度Sigma为5，宽200的图片  https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5)
 
 - 灰色图片，生成灰色，宽200的图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1)
 
 - 颜色反转，生成颜色相反，宽200的图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1)
 
 - 水平反转 ，生成水平反转，宽200的图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1)
 
 - 垂直反转 ，生成垂直反转，宽200的图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1)
 
 - 图片旋转 ，生成向左旋转45度，宽200的图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45)
 
 - 格式转换 ，生成向左旋转45，宽200的png图片   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png)
 
 
