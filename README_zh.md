@@ -1,4 +1,4 @@
-### WFS文件存储系统，主要解决海量小文件的存储问题 [[English document]](https://github.com/donnie4w/wfs/blob/master/README.md "[English document]")
+### WFS文件存储系统，主要解决海量小文件的存储问题 [[English document]](https://github.com/donnie4w/wfs/blob/master/readme.md "[English document]")
 
 ###### wfs有非常高效的读写效率，在高并发压力下，wfs存储引擎读写响应时间可以达到微秒级别.
 
