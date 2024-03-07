@@ -1,4 +1,4 @@
-### WFS File Storage System   [[中文文档]](https://github.com/donnie4w/wfs/blob/main/README_zh.md "[中文文档]")
+### WFS File Storage System   [[中文文档]](https://github.com/donnie4w/wfs/blob/master/README_zh.md "[中文文档]")
 
 ###### primarily designed to address the challenges of storing massive amounts of small files. The WFS storage engine exhibits highly efficient read and write performance, achieving response times at the microsecond level even under high concurrency pressures.
 
@@ -115,37 +115,48 @@
 #### wfs built-in image base processing
 
 original image:   https://tlnet.top/statics/test/wfs_test.jpg
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg)
 
 
 - Crop the center portion and scale down to produce a 200x200 thumbnail   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200)
 
 - The width is fixed at 200px and the height is reduced in equal proportion to create a wide 200 thumbnail    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200)
 
 - The height is fixed at 200px and the width is reduced in equal proportions to produce a thumbnail with a height of 200    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200)
 
 - Gaussian blur generates a picture with a blur level of Sigma 5 and a width of 200  https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5)
 
 - Gray image, generate a gray, 200 wide image   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1)
 
 - Colors are reversed to produce a 200 wide image with opposite colors    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1)
 
 - Horizontal inversion, generate horizontal inversion,  200 width  image   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1)
 
 - Vertical inversion, generate vertical inversion, width 200 image  https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1)
 
 - The image is rotated to generate an image that is rotated 45 degrees to the left and 200 width   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45)
 
 - Format conversion to generate a  200 width png image rotated to the left by 45   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png
+
 ![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png)
 
 
