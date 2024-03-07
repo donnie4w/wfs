@@ -1,19 +1,21 @@
-/**
- * Copyright 2017 wfs Author. All Rights Reserved.
- * email: donnie4w@gmail.com
- */
+// Copyright (c) 2023, donnie <donnie4w@gmail.com>
+// All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+// github.com/donnie4w/wfs
+//
+
 package main
 
 import (
-	"flag"
-
-	"wfs/httpserver"
-
-	. "wfs/conf"
+	_ "github.com/donnie4w/wfs/keystore"
+	_ "github.com/donnie4w/wfs/level1"
+	_ "github.com/donnie4w/wfs/stroge"
+	. "github.com/donnie4w/wfs/sys"
+	_ "github.com/donnie4w/wfs/tc"
 )
 
 func main() {
-	ParseFlag()
-	flag.Parse()
-	httpserver.Start()
+	Wfs.Serve()
 }
