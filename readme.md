@@ -79,25 +79,25 @@
 ##### Based on the benchmark data, you can estimate the performance of the wfs storage engine
 
 - Storage data performance estimation
-1. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (36489 ns/operation) ≈ 27405次/s
-2. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (31303 ns/operation) ≈ 31945次/s
-3. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (29300 ns/operation) ≈ 34129次/s
-4. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (24042 ns/operation) ≈ 41593次/s
-5. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (30784 ns/operation) ≈ 32484次/s
-6. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (30966 ns/operation) ≈ 32293次/s
-7. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (35859 ns/operation) ≈ 27920次/s
-8. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (33821 ns/operation) ≈ 29550次/s
+1. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (36489 ns/operation) ≈ 27405times/s
+2. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (31303 ns/operation) ≈ 31945times/s
+3. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (29300 ns/operation) ≈ 34129times/s
+4. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (24042 ns/operation) ≈ 41593times/s
+5. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (30784 ns/operation) ≈ 32484times/s
+6. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (30966 ns/operation) ≈ 32293times/s
+7. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (35859 ns/operation) ≈ 27920times/s
+8. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (33821 ns/operation) ≈ 29550times/s
 
 - get data performance estimates
 
-1. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (921 ns/operation) ≈  1085776次/s
-2. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (636 ns/operation) ≈  1572327次/s
-3. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1558 ns/operation) ≈ 641848次/s
-4. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1296 ns/operation) ≈ 771604次/s
-5. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1695 ns/operation) ≈ 589970次/s
-6. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1402ns/operation) ≈  713266次/s
-7. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1865 ns/operation) ≈ 536000次/s
-8. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1730 ns/operation) ≈ 578034次/s
+1. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (921 ns/operation) ≈  1085776times/s
+2. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (636 ns/operation) ≈  1572327times/s
+3. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1558 ns/operation) ≈ 641848times/s
+4. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1296 ns/operation) ≈ 771604times/s
+5. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1695 ns/operation) ≈ 589970times/s
+6. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1402ns/operation) ≈  713266times/s
+7. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1865 ns/operation) ≈ 536000times/s
+8. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1730 ns/operation) ≈ 578034times/s
 
 **Write data performance**
 
