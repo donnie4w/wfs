@@ -1,104 +1,235 @@
-# wfs是文件存储系统
-主要是解决海量小文件存储的问题,服务器对海量小文件独立存储会出现许多问题<br>
-单个wfs可以单独运行 ，也可以多个wfs集群
-***
+### WFS File Storage System   [[中文文档]](https://github.com/donnie4w/wfs/blob/main/README_zh.md "[中文文档]")
 
-# 支持
-**上传文件，删除文件，拉取文件**<br>
-**对图片文件输出大小处理:**<br>
-如：1.jpg?imageView2/0/w/100/h/100 输出宽高 100px的图片
+###### primarily designed to address the challenges of storing massive amounts of small files. The WFS storage engine exhibits highly efficient read and write performance, achieving response times at the microsecond level even under high concurrency pressures.
 
+###### The WFS storage engine exhibits highly efficient read and write performance, achieving response times at the microsecond level even under high concurrency pressures.
 
-# 启动wfs 
-直接启动：**./wfs** （默认监听端口:3434） <br>
-或带参数启动 ./wfs -max 50000000 -p 3434
-**参数说明： -max是上传文件大小限制（单位字节）   -p启动端口（默认3434）** 
-	
+##### A multitude of issues can arise from  Massive  small files：
 
+   In various hardware environments and system architectures, storing a vast number of small files can lead to a series of significant problems. Whether using traditional Hard Disk Drives (HDDs) or modern Solid State Drives (SSDs), these issues may impact system performance, efficiency, scalability, and cost:
 
-## 示例：
+1. Low Storage Efficiency: For any type of hard drive, small files typically result in inefficient use of physical storage space. Due to the smallest storage unit (sector or page) on a hard drive, small files might occupy more space than their actual content size, especially when additional metadata storage is required for each file, such as an inode (in Unix-like systems) or other forms of metadata records, which exacerbates space wastage. Inode Exhaustion: Each file and directory consumes at least one inode, with the total number of inodes set during disk formatting and file system creation. When there's an abundance of small files in a system, it could lead to the inability to create new files despite ample disk space, solely because all inodes have been used up, even though remaining disk space would be sufficient for more data. Performance Impact: As the number of inodes increases, finding and managing the metadata associated with these inodes becomes more complex and time-consuming, particularly for traditional file systems without efficient indexing mechanisms, affecting overall file system performance. Limited Scalability: File systems usually have a fixed maximum number of inodes that cannot be dynamically increased to accommodate the growth of small files unless special measures are taken, like adjusting the file system or specifying more inodes during reformatting.
+2. I/O Performance Bottlenecks and Resource Consumption: In HDD environments, random reading and writing of a large number of small files can lead to frequent disk seek operations, thereby reducing overall I/O performance. In SSD environments, while seek times are almost negligible, excessively dense access to small files can still cause controller pressure to increase, exacerbate write amplification effects, and intensify strain on garbage collection mechanisms.
+3. Indexing and Query Efficiency Issues: The presence of Massive small files poses challenges to the file system's indexing structure. As the number of files grows, metadata operations involved in searching, updating, and deleting small files become increasingly time-consuming. In scenarios requiring rapid retrieval and analysis, traditional indexing methods struggle to deliver efficient query services.
+4. Backup and Recovery Complexity and Efficiency: Backing up Massive small files is a tedious and time-consuming process. Moreover, during recovery, especially when restoring individual files on-demand, locating the target file among vast backup data significantly impacts recovery speed and efficiency.
+5. Scalability and Availability Challenges: Storing Massive small files can present scalability issues for storage systems. As the number of files increases, effectively allocating and managing resources to maintain good performance and stability becomes a major challenge. In distributed storage systems, hot spot issues may arise, causing certain nodes to experience excessive loads, impacting the overall stability and availability of the system.
 
-**curl 上传文件** <br/>
+** The role of WFS is to efficiently compress and archive the Massive small files being stored, providing a streamlined method for data retrieval, as well as background file management, file defragmentation, and more **
 
-(1) 将文件直接上传服务器，地址为  http://*****:3434/u  ：如
+------------
 
-	curl -F "file=@1.jpg" "http://127.0.0.1:3434/u"
- 	则上传文件 1.jpg
-	 上传完成后访问文件 ：http://127.0.0.1:3434/r/1.jpg 	
-(2)将文件直接上传服务器，并指定文件名 地址为  http://*****:3434/u/文件名，
-文件名同时也是访问的路径，如：
+#### WFS-related Programs
 
-	curl -F "file=@1.jpg" "http://127.0.0.1:3434/u/abc/11"
-	上传文件1.jpg 文件名 abc/11
-	上传完成后访问文件 ：http://127.0.0.1:3434/r/abc/11
+- WFS Source Code Address: https://github.com/donnie4w/wfs
+- Go Client: https://github.com/donnie4w/wfs-goclient
+- Java Client: https://github.com/donnie4w/wfs-jclient
+- Python Client: https://github.com/donnie4w/wfs-pyclient
+- Online WFS Demo: http://testwfs.tlnet.top (Username: admin, Password: 123)
+- WFS User Manual: https://tlnet.top/wfsdoc
 
-**curl 删除文件** 
+------------
 
-	 curl -X DELETE "http://127.0.0.1:3434/d/1.jpg"
- 	删除文件 1.jpg
+#### Features of wfs
+
+- High efficiency
+- Simplicity
+- Zero dependency
+- Management platform
+- Image processing
+
+------------
+
+#### Application scenario
+
+- Media storage: It is suitable for storing and accessing large amounts of small files, such as pictures and text. With a high-performance storage engine, WFS can achieve high-speed access and provide rich image resource processing functions.。
+
+------------
+
+#### Technical characteristics
+
+- High throughput and low latency: ensures data access speed in high-concurrency scenarios.
+- Supports multi-level data compression storage: saves storage space and improves storage efficiency.
+- Supports http(https) to access files
+- Support thrift protocol long connection to access files
+- Support basic image processing: built-in image processing to meet multimedia storage requirements.
+
+------------
+
+#### Stress testing and performance evaluation of WFS
+
+###### lease note that the following benchmark data is for the WFS data storage engine and does not take into account the impact of network factors. Under ideal conditions, estimated data is derived based on benchmark test results
+
+**Below is a screenshot of some of the pressure measurement data**
+![](https://tlnet.top/f/1709371893_7752.jpg)
+
+![](https://tlnet.top/f/1709371933_7249.jpg)
+
+![](https://tlnet.top/f/1709373380_17625.jpg)
+
+![](https://tlnet.top/f/1709373414_15548.jpg)
+
+##### Test data description：
+
+- First column test method, write Append, read Get, *-4 quad-core, *-8 octa-core
+- The second list is the total number of tests performed in this round
+- ns/op: indicates the time consumed per execution
+- B/op: Memory consumed per execution
+- allocs/op: The number of memory allocations per execution
+
+##### Based on the benchmark data, you can estimate the performance of the wfs storage engine
+
+- Storage data performance estimation
+1. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (36489 ns/operation) ≈ 27405次/s
+2. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (31303 ns/operation) ≈ 31945次/s
+3. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (29300 ns/operation) ≈ 34129次/s
+4. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (24042 ns/operation) ≈ 41593次/s
+5. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (30784 ns/operation) ≈ 32484次/s
+6. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (30966 ns/operation) ≈ 32293次/s
+7. Benchmark_Append-4 The average number of operations performed per second is approximately：1 / (35859 ns/operation) ≈ 27920次/s
+8. Benchmark_Append-8 The average number of operations performed per second is approximately：1 / (33821 ns/operation) ≈ 29550次/s
+
+- get data performance estimates
+
+1. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (921 ns/operation) ≈  1085776次/s
+2. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (636 ns/operation) ≈  1572327次/s
+3. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1558 ns/operation) ≈ 641848次/s
+4. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1296 ns/operation) ≈ 771604次/s
+5. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1695 ns/operation) ≈ 589970次/s
+6. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1402ns/operation) ≈  713266次/s
+7. Benchmark_Get-4 The average number of operations performed per second is approximately：1 / (1865 ns/operation) ≈ 536000次/s
+8. Benchmark_Get-8 The average number of operations performed per second is approximately：1 / (1730 ns/operation) ≈ 578034次/s
+
+**Write data performance**
+
+- Under different concurrent conditions, the WFS storage engine performs write operations on average between about 30,000 and 40,000 times per second.
+
+**Read data performance**
+
+- The WFS storage engine performs even better data read operations, with an average of 530,000 to 1.5 million reads per second.
+
+ **Please note: the test results are highly dependent on the environment. The actual application performance may be affected by many factors, such as system load, network status, and disk I/O performance. Therefore, you need to verify and tune the actual deployment based on the actual environment**
  
-	 curl -X DELETE "http://127.0.0.1:3434/d/abc/11"
-	 删除文件 abc/11
 
-***
+------------
 
-## 支持在程序中使用客户端操作wfs
+#### wfs built-in image base processing
 
- 	 wfsPost()    上传文件
- 	 wfsRead()   拉取文件
- 	 wfsDel()      删除文件
+original image:   https://tlnet.top/statics/test/wfs_test.jpg
+![](https://tlnet.top/statics/test/wfs_test.jpg)
 
-[以python客户端为例](https://github.com/donnie4w/wfs-pyclient "以python客户端为例")：
 
-  	url ：http://*****:3434/thrift  固定格式
-  	wfs = WfsClient("http://127.0.0.1:3434/thrift")
-  	bs= getFileBytes("1.jpg")  获取图片
-  	wfs.PostFile(bs,"aa/head.jpg","")   上传图片，并自定义图片路径aa/head.jpg
-  	f=wfs.GetFile("aa/head.jpg") 拉取图片 aa/head.jpg 资源
-  	print(len(f.fileBody))   
-  	saveFileByBytes(f.fileBody,"22_1.jpg")
-  	wfs.DelFile("aa/head.jpg")   删除图片
-  	wfs.Close()
+- Crop the center portion and scale down to produce a 200x200 thumbnail   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/1/w/200/h/200)
 
-***
+- The width is fixed at 200px and the height is reduced in equal proportion to create a wide 200 thumbnail    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200)
 
-### **wfs的图片处理**
-访问图片时，可以加参数来获取压缩后的图片 	<br/>
-规则是：图片路径后+?imageView2/mode/w/Width/h/Height 如:
+- The height is fixed at 200px and the width is reduced in equal proportions to produce a thumbnail with a height of 200    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/h/200)
 
-	imageView2固定
-	mode 有 0，1，2，3，4，5 分别输出缩略图 限定的宽或高
-	w后为宽：如：w/100
-	h后为高：如：h/100
-规则的制定是参考[七牛云存储](https://www.qiniu.com/ "七牛云存储")
-所以mode规则也可以[参考](https://developer.qiniu.com/dora/api/1279/basic-processing-images-imageview2 "参考")
+- Gaussian blur generates a picture with a blur level of Sigma 5 and a width of 200  https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/blur/5)
 
-	http://127.0.0.1:3434/r/1.jpg?imageView2/0/w/100/h/100
-	http://127.0.0.1:3434/r/1.jpg?imageView2/1/w/100/h/100 
-	http://127.0.0.1:3434/r/1.jpg?imageView2/2/w/100
-	http://127.0.0.1:3434/r/1.jpg?imageView2/3/h/100
+- Gray image, generate a gray, 200 wide image   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/grey/1)
+
+- Colors are reversed to produce a 200 wide image with opposite colors    https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/invert/1)
+
+- Horizontal inversion, generate horizontal inversion,  200 width  image   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/fliph/1)
+
+- Vertical inversion, generate vertical inversion, width 200 image  https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/flipv/1)
+
+- The image is rotated to generate an image that is rotated 45 degrees to the left and 200 width   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45)
+
+- Format conversion to generate a  200 width png image rotated to the left by 45   https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png
+![](https://tlnet.top/statics/test/wfs_test.jpg?imageView2/2/w/200/rotate/45/format/png)
+
+
+
+##### Image processing methods are outlined in the [wfs usage documentation](https://tlnet.top/wfsdoc "wfs usage documentation")
+
+------------
+
+#### Instructions for using WFS
+
+1. Execute file download address：https://tlnet.top/download
+
+2. start wfs：
+        ./linux101_wfs     -c    wfs.json
+
+3.   wfs.json configuration instruction
+
+			{
+   			 "listen": 4660,     
+   			 "opaddr": ":6802",
+    			"webaddr": ":6801",
+   			 "memLimit": 128,
+   	 		"data.maxsize": 10000,
+  	 		 "filesize": 100,
+			}
 	
-	模式	 mode 说明
-	/0/w/<LongEdge>/h/<ShortEdge>	限定缩略图的长边最多为<LongEdge>，短边最多为<ShortEdge>，进行等比缩放，不裁剪。如果只指定 w 参数则表示限定长边（短边自适应），只指定 h 参数则表示限定短边（长边自适应）。
-	/1/w/<Width>/h/<Height>	限定缩略图的宽最少为<Width>，高最少为<Height>，进行等比缩放，居中裁剪。转后的缩略图通常恰好是 <Width>x<Height> 的大小（有一个边缩放的时候会因为超出矩形框而被裁剪掉多余部分）。如果只指定 w 参数或只指定 h 参数，代表限定为长宽相等的正方图。
-	/2/w/<Width>/h/<Height>	限定缩略图的宽最多为<Width>，高最多为<Height>，进行等比缩放，不裁剪。如果只指定 w 参数则表示限定宽（高自适应），只指定 h 参数则表示限定高（宽自适应）。它和模式0类似，区别只是限定宽和高，不是限定长边和短边。从应用场景来说，模式0适合移动设备上做缩略图，模式2适合PC上做缩略图。
-	/3/w/<Width>/h/<Height>	限定缩略图的宽最少为<Width>，高最少为<Height>，进行等比缩放，不裁剪。如果只指定 w 参数或只指定 h 参数，代表长宽限定为同样的值。你可以理解为模式1是模式3的结果再做居中裁剪得到的。
-	/4/w/<LongEdge>/h/<ShortEdge>	限定缩略图的长边最少为<LongEdge>，短边最少为<ShortEdge>，进行等比缩放，不裁剪。如果只指定 w 参数或只指定 h 参数，表示长边短边限定为同样的值。这个模式很适合在手持设备做图片的全屏查看（把这里的长边短边分别设为手机屏幕的分辨率即可），生成的图片尺寸刚好充满整个屏幕（某一个边可能会超出屏幕）。
-	/5/w/<LongEdge>/h/<ShortEdge>	限定缩略图的长边最少为<LongEdge>，短边最少为<ShortEdge>，进行等比缩放，居中裁剪。如果只指定 w 参数或只指定 h 参数，表示长边短边限定为同样的值。同上模式4，但超出限定的矩形部分会被裁剪。
+**Attribute description**
 
+- listen the listening port of the http/https resource obtaining service
+- opaddr thrift Address of the back-end resource operation
+- webaddr Specifies the address of the management background service
+- memLimit Maximum wfs memory allocation (unit: MB)
+- data.maxsize Upper limit of wfs image size to be uploaded (unit: KB)
+- filesize Upper limit of wfs back-end archive filesize (unit: MB)
 
-***
-**wfs提供了分片支持，分片可以解决单个节点的资源限制问题**
+###### Please refer to the wfs usage documentation for detailed instructions on [wfs usage documentation](https://tlnet.top/wfsdoc "wfs usage documentation")
 
-	wfs -slavelist 查询目前的节点 
-	wfs -addslave slave1:192.168.1.101:3434  增加分片 节点名slave1，地址：192.168.1.101：3434
-	wfs -addslave slave2:192.168.1.102:3434  增加分片 节点名slave2，地址：192.168.1.102：3434
-	wfs -removeslave slave1  删除分片slave1
+------------
 
-***
+#### WFS storage, delete data description
 
-###  目前客户端有： python  java golang：
-使用客户端操作 通过通讯协议的压缩传输 会更加快捷
-1. [java : https://github.com/donnie4w/wfs-jclient](https://github.com/donnie4w/wfs-jclient)
-2. [go : https://github.com/donnie4w/wfs-goclient](https://github.com/donnie4w/wfs-goclient)
-3. [python : https://github.com/donnie4w/wfs-pyclient](https://github.com/donnie4w/wfs-pyclient)
+1. http/https
+
+		 curl -F "file=@1.jpg"  "http://127.0.0.1:6801/append/test/1.jpg" -H "username:admin" -H "password:123"
+
+		 curl -X DELETE "http://127.0.0.1:6801/delete/test/1.jpg" -H "username:admin" -H "password:123"
+
+2. using the client
+
+    The following is a java client example
+
+    	public void append() throws WfsException, IOException {
+        String dir = System.getProperty("user.dir") + "/src/test/java/io/github/donnie4w/wfs/test/";
+        WfsClient wc = newClient();
+        WfsFile wf = new WfsFile();
+        wf.setName("test/java/1.jpeg");
+        wf.setData(Files.readAllBytes(Paths.get(dir + "1.jpeg")));
+        wc.append(wf);
+    	}
+
+3. The following is a java client example
+
+------------
+
+#### WFS management platform
+
+**Default search**
+![](https://tlnet.top/f/1709440477_578.jpg)
+
+**Prefix  search**
+![](https://tlnet.top/f/1709440507_7665.jpg)
+
+**defragment**
+![](https://tlnet.top/f/1709440627_3436.jpg)
+
+------------
+
+#### The Distributed Deployment Solution for WFS
+
+Explanation of Design Changes from WFS 0.x to WFS 1.x: The WFS 0.x version implemented distributed storage, enabling the system to disperse and process data across multiple servers, thereby possessing horizontal scalability and data backup redundancy capabilities. However, practical applications exposed certain issues, such as low space utilization due to duplicated metadata storage and inefficiency in handling small files due to frequent forwarding and transmission between nodes, which increased system resource consumption.
+
+The goal of WFS 1.x is to meet specific application scenario requirements through streamlined architecture and a focus on performance improvement. As for considerations regarding distributed deployment, users are entrusted to leverage third-party tools and services to achieve this functionality.
+
+1. WFS 1.x does not directly support distributed storage; however, to address large-scale deployment and high-availability needs, it recommends using load balancing services like Nginx. By configuring resources and positioning strategies appropriately, a logically similar distributed effect can be emulated. Each WFS instance stores data independently, but external services can distribute requests among multiple WFS instances, achieving a "distributed deployment" at the business level. For guidance on how to implement the "distributed deployment" of WFS, refer to the article '[The Distributed Deployment Solution for WFS](https://tlnet.top/article/22425158 "The Distributed Deployment Solution for WFS")'.
+2. It must be emphasized that distributed systems have significant advantages in ultra-large scale data storage operations, including dynamic resource allocation, block-level data storage, and multi-node backups. Nonetheless, with WFS 1.x adopting a load balancing strategy, users need to take measures to ensure data security and high availability themselves. This includes regular data backups, setting up a load balancing cluster, and configuring and designing routing rules within applications to guarantee that data is correctly routed to the intended nodes.
+3. The strength of WFS lies in its simplicity and efficiency. Not every file storage service requires a complex distributed file system. In fact, most businesses have not yet reached an ultra-large scale, and using a sophisticated distributed file system may introduce disproportionately high additional costs and operational complexity. Currently, WFS and its corresponding distributed deployment strategies adequately satisfy various business demands.
+
