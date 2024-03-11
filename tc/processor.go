@@ -81,7 +81,7 @@ func textTplByPath(path string, data any, hc *tlnet.HttpContext) {
 
 func textTplByText(text string, data any, hc *tlnet.HttpContext) {
 
-	tl := textTpl.New("tldb")
+	tl := textTpl.New("wfsTemplate")
 	if _, err := tl.Parse(text); err == nil {
 		tl.Execute(hc.Writer(), data)
 	} else {
