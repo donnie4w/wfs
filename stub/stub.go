@@ -957,6 +957,10 @@ type WfsIface interface {
   //  - Path
   Delete(ctx context.Context, path string) (_r *WfsAck, _err error)
   // Parameters:
+  //  - Path
+  //  - Newpath_
+  Rename(ctx context.Context, path string, newpath string) (_r *WfsAck, _err error)
+  // Parameters:
   //  - Wa
   Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err error)
   // Parameters:
@@ -1037,13 +1041,15 @@ func (p *WfsIfaceClient) Delete(ctx context.Context, path string) (_r *WfsAck, _
 }
 
 // Parameters:
-//  - Wa
-func (p *WfsIfaceClient) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err error) {
-  var _args8 WfsIfaceAuthArgs
-  _args8.Wa = wa
-  var _result10 WfsIfaceAuthResult
+//  - Path
+//  - Newpath_
+func (p *WfsIfaceClient) Rename(ctx context.Context, path string, newpath string) (_r *WfsAck, _err error) {
+  var _args8 WfsIfaceRenameArgs
+  _args8.Path = path
+  _args8.Newpath_ = newpath
+  var _result10 WfsIfaceRenameResult
   var _meta9 thrift.ResponseMeta
-  _meta9, _err = p.Client_().Call(ctx, "Auth", &_args8, &_result10)
+  _meta9, _err = p.Client_().Call(ctx, "Rename", &_args8, &_result10)
   p.SetLastResponseMeta_(_meta9)
   if _err != nil {
     return
@@ -1051,17 +1057,17 @@ func (p *WfsIfaceClient) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _er
   if _ret11 := _result10.GetSuccess(); _ret11 != nil {
     return _ret11, nil
   }
-  return nil, thrift.NewTApplicationException(thrift.MISSING_RESULT, "Auth failed: unknown result")
+  return nil, thrift.NewTApplicationException(thrift.MISSING_RESULT, "Rename failed: unknown result")
 }
 
 // Parameters:
-//  - Path
-func (p *WfsIfaceClient) Get(ctx context.Context, path string) (_r *WfsData, _err error) {
-  var _args12 WfsIfaceGetArgs
-  _args12.Path = path
-  var _result14 WfsIfaceGetResult
+//  - Wa
+func (p *WfsIfaceClient) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err error) {
+  var _args12 WfsIfaceAuthArgs
+  _args12.Wa = wa
+  var _result14 WfsIfaceAuthResult
   var _meta13 thrift.ResponseMeta
-  _meta13, _err = p.Client_().Call(ctx, "Get", &_args12, &_result14)
+  _meta13, _err = p.Client_().Call(ctx, "Auth", &_args12, &_result14)
   p.SetLastResponseMeta_(_meta13)
   if _err != nil {
     return
@@ -1069,19 +1075,37 @@ func (p *WfsIfaceClient) Get(ctx context.Context, path string) (_r *WfsData, _er
   if _ret15 := _result14.GetSuccess(); _ret15 != nil {
     return _ret15, nil
   }
-  return nil, thrift.NewTApplicationException(thrift.MISSING_RESULT, "Get failed: unknown result")
+  return nil, thrift.NewTApplicationException(thrift.MISSING_RESULT, "Auth failed: unknown result")
 }
 
-func (p *WfsIfaceClient) Ping(ctx context.Context) (_r int8, _err error) {
-  var _args16 WfsIfacePingArgs
-  var _result18 WfsIfacePingResult
+// Parameters:
+//  - Path
+func (p *WfsIfaceClient) Get(ctx context.Context, path string) (_r *WfsData, _err error) {
+  var _args16 WfsIfaceGetArgs
+  _args16.Path = path
+  var _result18 WfsIfaceGetResult
   var _meta17 thrift.ResponseMeta
-  _meta17, _err = p.Client_().Call(ctx, "Ping", &_args16, &_result18)
+  _meta17, _err = p.Client_().Call(ctx, "Get", &_args16, &_result18)
   p.SetLastResponseMeta_(_meta17)
   if _err != nil {
     return
   }
-  return _result18.GetSuccess(), nil
+  if _ret19 := _result18.GetSuccess(); _ret19 != nil {
+    return _ret19, nil
+  }
+  return nil, thrift.NewTApplicationException(thrift.MISSING_RESULT, "Get failed: unknown result")
+}
+
+func (p *WfsIfaceClient) Ping(ctx context.Context) (_r int8, _err error) {
+  var _args20 WfsIfacePingArgs
+  var _result22 WfsIfacePingResult
+  var _meta21 thrift.ResponseMeta
+  _meta21, _err = p.Client_().Call(ctx, "Ping", &_args20, &_result22)
+  p.SetLastResponseMeta_(_meta21)
+  if _err != nil {
+    return
+  }
+  return _result22.GetSuccess(), nil
 }
 
 type WfsIfaceProcessor struct {
@@ -1104,13 +1128,14 @@ func (p *WfsIfaceProcessor) ProcessorMap() map[string]thrift.TProcessorFunction 
 
 func NewWfsIfaceProcessor(handler WfsIface) *WfsIfaceProcessor {
 
-  self19 := &WfsIfaceProcessor{handler:handler, processorMap:make(map[string]thrift.TProcessorFunction)}
-  self19.processorMap["Append"] = &wfsIfaceProcessorAppend{handler:handler}
-  self19.processorMap["Delete"] = &wfsIfaceProcessorDelete{handler:handler}
-  self19.processorMap["Auth"] = &wfsIfaceProcessorAuth{handler:handler}
-  self19.processorMap["Get"] = &wfsIfaceProcessorGet{handler:handler}
-  self19.processorMap["Ping"] = &wfsIfaceProcessorPing{handler:handler}
-return self19
+  self23 := &WfsIfaceProcessor{handler:handler, processorMap:make(map[string]thrift.TProcessorFunction)}
+  self23.processorMap["Append"] = &wfsIfaceProcessorAppend{handler:handler}
+  self23.processorMap["Delete"] = &wfsIfaceProcessorDelete{handler:handler}
+  self23.processorMap["Rename"] = &wfsIfaceProcessorRename{handler:handler}
+  self23.processorMap["Auth"] = &wfsIfaceProcessorAuth{handler:handler}
+  self23.processorMap["Get"] = &wfsIfaceProcessorGet{handler:handler}
+  self23.processorMap["Ping"] = &wfsIfaceProcessorPing{handler:handler}
+return self23
 }
 
 func (p *WfsIfaceProcessor) Process(ctx context.Context, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -1121,12 +1146,12 @@ func (p *WfsIfaceProcessor) Process(ctx context.Context, iprot, oprot thrift.TPr
   }
   iprot.Skip(ctx, thrift.STRUCT)
   iprot.ReadMessageEnd(ctx)
-  x20 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function " + name)
+  x24 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function " + name)
   oprot.WriteMessageBegin(ctx, name, thrift.EXCEPTION, seqId)
-  x20.Write(ctx, oprot)
+  x24.Write(ctx, oprot)
   oprot.WriteMessageEnd(ctx)
   oprot.Flush(ctx)
-  return false, x20
+  return false, x24
 
 }
 
@@ -1135,7 +1160,7 @@ type wfsIfaceProcessorAppend struct {
 }
 
 func (p *wfsIfaceProcessorAppend) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-  var _write_err21 error
+  var _write_err25 error
   args := WfsIfaceAppendArgs{}
   if err2 := args.Read(ctx, iprot); err2 != nil {
     iprot.ReadMessageEnd(ctx)
@@ -1186,21 +1211,21 @@ func (p *wfsIfaceProcessorAppend) Process(ctx context.Context, seqId int32, ipro
         return false, thrift.WrapTException(err)
       }
     }
-    _exc22 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Append: " + err2.Error())
+    _exc26 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Append: " + err2.Error())
     if err2 := oprot.WriteMessageBegin(ctx, "Append", thrift.EXCEPTION, seqId); err2 != nil {
-      _write_err21 = thrift.WrapTException(err2)
+      _write_err25 = thrift.WrapTException(err2)
     }
-    if err2 := _exc22.Write(ctx, oprot); _write_err21 == nil && err2 != nil {
-      _write_err21 = thrift.WrapTException(err2)
+    if err2 := _exc26.Write(ctx, oprot); _write_err25 == nil && err2 != nil {
+      _write_err25 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.WriteMessageEnd(ctx); _write_err21 == nil && err2 != nil {
-      _write_err21 = thrift.WrapTException(err2)
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err25 == nil && err2 != nil {
+      _write_err25 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.Flush(ctx); _write_err21 == nil && err2 != nil {
-      _write_err21 = thrift.WrapTException(err2)
+    if err2 := oprot.Flush(ctx); _write_err25 == nil && err2 != nil {
+      _write_err25 = thrift.WrapTException(err2)
     }
-    if _write_err21 != nil {
-      return false, thrift.WrapTException(_write_err21)
+    if _write_err25 != nil {
+      return false, thrift.WrapTException(_write_err25)
     }
     return true, err
   } else {
@@ -1208,19 +1233,19 @@ func (p *wfsIfaceProcessorAppend) Process(ctx context.Context, seqId int32, ipro
   }
   tickerCancel()
   if err2 := oprot.WriteMessageBegin(ctx, "Append", thrift.REPLY, seqId); err2 != nil {
-    _write_err21 = thrift.WrapTException(err2)
+    _write_err25 = thrift.WrapTException(err2)
   }
-  if err2 := result.Write(ctx, oprot); _write_err21 == nil && err2 != nil {
-    _write_err21 = thrift.WrapTException(err2)
+  if err2 := result.Write(ctx, oprot); _write_err25 == nil && err2 != nil {
+    _write_err25 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.WriteMessageEnd(ctx); _write_err21 == nil && err2 != nil {
-    _write_err21 = thrift.WrapTException(err2)
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err25 == nil && err2 != nil {
+    _write_err25 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.Flush(ctx); _write_err21 == nil && err2 != nil {
-    _write_err21 = thrift.WrapTException(err2)
+  if err2 := oprot.Flush(ctx); _write_err25 == nil && err2 != nil {
+    _write_err25 = thrift.WrapTException(err2)
   }
-  if _write_err21 != nil {
-    return false, thrift.WrapTException(_write_err21)
+  if _write_err25 != nil {
+    return false, thrift.WrapTException(_write_err25)
   }
   return true, err
 }
@@ -1230,7 +1255,7 @@ type wfsIfaceProcessorDelete struct {
 }
 
 func (p *wfsIfaceProcessorDelete) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-  var _write_err23 error
+  var _write_err27 error
   args := WfsIfaceDeleteArgs{}
   if err2 := args.Read(ctx, iprot); err2 != nil {
     iprot.ReadMessageEnd(ctx)
@@ -1281,21 +1306,21 @@ func (p *wfsIfaceProcessorDelete) Process(ctx context.Context, seqId int32, ipro
         return false, thrift.WrapTException(err)
       }
     }
-    _exc24 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Delete: " + err2.Error())
+    _exc28 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Delete: " + err2.Error())
     if err2 := oprot.WriteMessageBegin(ctx, "Delete", thrift.EXCEPTION, seqId); err2 != nil {
-      _write_err23 = thrift.WrapTException(err2)
+      _write_err27 = thrift.WrapTException(err2)
     }
-    if err2 := _exc24.Write(ctx, oprot); _write_err23 == nil && err2 != nil {
-      _write_err23 = thrift.WrapTException(err2)
+    if err2 := _exc28.Write(ctx, oprot); _write_err27 == nil && err2 != nil {
+      _write_err27 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.WriteMessageEnd(ctx); _write_err23 == nil && err2 != nil {
-      _write_err23 = thrift.WrapTException(err2)
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err27 == nil && err2 != nil {
+      _write_err27 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.Flush(ctx); _write_err23 == nil && err2 != nil {
-      _write_err23 = thrift.WrapTException(err2)
+    if err2 := oprot.Flush(ctx); _write_err27 == nil && err2 != nil {
+      _write_err27 = thrift.WrapTException(err2)
     }
-    if _write_err23 != nil {
-      return false, thrift.WrapTException(_write_err23)
+    if _write_err27 != nil {
+      return false, thrift.WrapTException(_write_err27)
     }
     return true, err
   } else {
@@ -1303,19 +1328,114 @@ func (p *wfsIfaceProcessorDelete) Process(ctx context.Context, seqId int32, ipro
   }
   tickerCancel()
   if err2 := oprot.WriteMessageBegin(ctx, "Delete", thrift.REPLY, seqId); err2 != nil {
-    _write_err23 = thrift.WrapTException(err2)
+    _write_err27 = thrift.WrapTException(err2)
   }
-  if err2 := result.Write(ctx, oprot); _write_err23 == nil && err2 != nil {
-    _write_err23 = thrift.WrapTException(err2)
+  if err2 := result.Write(ctx, oprot); _write_err27 == nil && err2 != nil {
+    _write_err27 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.WriteMessageEnd(ctx); _write_err23 == nil && err2 != nil {
-    _write_err23 = thrift.WrapTException(err2)
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err27 == nil && err2 != nil {
+    _write_err27 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.Flush(ctx); _write_err23 == nil && err2 != nil {
-    _write_err23 = thrift.WrapTException(err2)
+  if err2 := oprot.Flush(ctx); _write_err27 == nil && err2 != nil {
+    _write_err27 = thrift.WrapTException(err2)
   }
-  if _write_err23 != nil {
-    return false, thrift.WrapTException(_write_err23)
+  if _write_err27 != nil {
+    return false, thrift.WrapTException(_write_err27)
+  }
+  return true, err
+}
+
+type wfsIfaceProcessorRename struct {
+  handler WfsIface
+}
+
+func (p *wfsIfaceProcessorRename) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+  var _write_err29 error
+  args := WfsIfaceRenameArgs{}
+  if err2 := args.Read(ctx, iprot); err2 != nil {
+    iprot.ReadMessageEnd(ctx)
+    x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err2.Error())
+    oprot.WriteMessageBegin(ctx, "Rename", thrift.EXCEPTION, seqId)
+    x.Write(ctx, oprot)
+    oprot.WriteMessageEnd(ctx)
+    oprot.Flush(ctx)
+    return false, thrift.WrapTException(err2)
+  }
+  iprot.ReadMessageEnd(ctx)
+
+  tickerCancel := func() {}
+  // Start a goroutine to do server side connectivity check.
+  if thrift.ServerConnectivityCheckInterval > 0 {
+    var cancel context.CancelCauseFunc
+    ctx, cancel = context.WithCancelCause(ctx)
+    defer cancel(nil)
+    var tickerCtx context.Context
+    tickerCtx, tickerCancel = context.WithCancel(context.Background())
+    defer tickerCancel()
+    go func(ctx context.Context, cancel context.CancelCauseFunc) {
+      ticker := time.NewTicker(thrift.ServerConnectivityCheckInterval)
+      defer ticker.Stop()
+      for {
+        select {
+        case <-ctx.Done():
+          return
+        case <-ticker.C:
+          if !iprot.Transport().IsOpen() {
+            cancel(thrift.ErrAbandonRequest)
+            return
+          }
+        }
+      }
+    }(tickerCtx, cancel)
+  }
+
+  result := WfsIfaceRenameResult{}
+  if retval, err2 := p.handler.Rename(ctx, args.Path, args.Newpath_); err2 != nil {
+    tickerCancel()
+    err = thrift.WrapTException(err2)
+    if errors.Is(err2, thrift.ErrAbandonRequest) {
+      return false, thrift.WrapTException(err2)
+    }
+    if errors.Is(err2, context.Canceled) {
+      if err := context.Cause(ctx); errors.Is(err, thrift.ErrAbandonRequest) {
+        return false, thrift.WrapTException(err)
+      }
+    }
+    _exc30 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Rename: " + err2.Error())
+    if err2 := oprot.WriteMessageBegin(ctx, "Rename", thrift.EXCEPTION, seqId); err2 != nil {
+      _write_err29 = thrift.WrapTException(err2)
+    }
+    if err2 := _exc30.Write(ctx, oprot); _write_err29 == nil && err2 != nil {
+      _write_err29 = thrift.WrapTException(err2)
+    }
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err29 == nil && err2 != nil {
+      _write_err29 = thrift.WrapTException(err2)
+    }
+    if err2 := oprot.Flush(ctx); _write_err29 == nil && err2 != nil {
+      _write_err29 = thrift.WrapTException(err2)
+    }
+    if _write_err29 != nil {
+      return false, thrift.WrapTException(_write_err29)
+    }
+    return true, err
+  } else {
+    result.Success = retval
+  }
+  tickerCancel()
+  if err2 := oprot.WriteMessageBegin(ctx, "Rename", thrift.REPLY, seqId); err2 != nil {
+    _write_err29 = thrift.WrapTException(err2)
+  }
+  if err2 := result.Write(ctx, oprot); _write_err29 == nil && err2 != nil {
+    _write_err29 = thrift.WrapTException(err2)
+  }
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err29 == nil && err2 != nil {
+    _write_err29 = thrift.WrapTException(err2)
+  }
+  if err2 := oprot.Flush(ctx); _write_err29 == nil && err2 != nil {
+    _write_err29 = thrift.WrapTException(err2)
+  }
+  if _write_err29 != nil {
+    return false, thrift.WrapTException(_write_err29)
   }
   return true, err
 }
@@ -1325,7 +1445,7 @@ type wfsIfaceProcessorAuth struct {
 }
 
 func (p *wfsIfaceProcessorAuth) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-  var _write_err25 error
+  var _write_err31 error
   args := WfsIfaceAuthArgs{}
   if err2 := args.Read(ctx, iprot); err2 != nil {
     iprot.ReadMessageEnd(ctx)
@@ -1376,21 +1496,21 @@ func (p *wfsIfaceProcessorAuth) Process(ctx context.Context, seqId int32, iprot,
         return false, thrift.WrapTException(err)
       }
     }
-    _exc26 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Auth: " + err2.Error())
+    _exc32 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Auth: " + err2.Error())
     if err2 := oprot.WriteMessageBegin(ctx, "Auth", thrift.EXCEPTION, seqId); err2 != nil {
-      _write_err25 = thrift.WrapTException(err2)
+      _write_err31 = thrift.WrapTException(err2)
     }
-    if err2 := _exc26.Write(ctx, oprot); _write_err25 == nil && err2 != nil {
-      _write_err25 = thrift.WrapTException(err2)
+    if err2 := _exc32.Write(ctx, oprot); _write_err31 == nil && err2 != nil {
+      _write_err31 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.WriteMessageEnd(ctx); _write_err25 == nil && err2 != nil {
-      _write_err25 = thrift.WrapTException(err2)
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err31 == nil && err2 != nil {
+      _write_err31 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.Flush(ctx); _write_err25 == nil && err2 != nil {
-      _write_err25 = thrift.WrapTException(err2)
+    if err2 := oprot.Flush(ctx); _write_err31 == nil && err2 != nil {
+      _write_err31 = thrift.WrapTException(err2)
     }
-    if _write_err25 != nil {
-      return false, thrift.WrapTException(_write_err25)
+    if _write_err31 != nil {
+      return false, thrift.WrapTException(_write_err31)
     }
     return true, err
   } else {
@@ -1398,19 +1518,19 @@ func (p *wfsIfaceProcessorAuth) Process(ctx context.Context, seqId int32, iprot,
   }
   tickerCancel()
   if err2 := oprot.WriteMessageBegin(ctx, "Auth", thrift.REPLY, seqId); err2 != nil {
-    _write_err25 = thrift.WrapTException(err2)
+    _write_err31 = thrift.WrapTException(err2)
   }
-  if err2 := result.Write(ctx, oprot); _write_err25 == nil && err2 != nil {
-    _write_err25 = thrift.WrapTException(err2)
+  if err2 := result.Write(ctx, oprot); _write_err31 == nil && err2 != nil {
+    _write_err31 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.WriteMessageEnd(ctx); _write_err25 == nil && err2 != nil {
-    _write_err25 = thrift.WrapTException(err2)
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err31 == nil && err2 != nil {
+    _write_err31 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.Flush(ctx); _write_err25 == nil && err2 != nil {
-    _write_err25 = thrift.WrapTException(err2)
+  if err2 := oprot.Flush(ctx); _write_err31 == nil && err2 != nil {
+    _write_err31 = thrift.WrapTException(err2)
   }
-  if _write_err25 != nil {
-    return false, thrift.WrapTException(_write_err25)
+  if _write_err31 != nil {
+    return false, thrift.WrapTException(_write_err31)
   }
   return true, err
 }
@@ -1420,7 +1540,7 @@ type wfsIfaceProcessorGet struct {
 }
 
 func (p *wfsIfaceProcessorGet) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-  var _write_err27 error
+  var _write_err33 error
   args := WfsIfaceGetArgs{}
   if err2 := args.Read(ctx, iprot); err2 != nil {
     iprot.ReadMessageEnd(ctx)
@@ -1471,21 +1591,21 @@ func (p *wfsIfaceProcessorGet) Process(ctx context.Context, seqId int32, iprot, 
         return false, thrift.WrapTException(err)
       }
     }
-    _exc28 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Get: " + err2.Error())
+    _exc34 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Get: " + err2.Error())
     if err2 := oprot.WriteMessageBegin(ctx, "Get", thrift.EXCEPTION, seqId); err2 != nil {
-      _write_err27 = thrift.WrapTException(err2)
+      _write_err33 = thrift.WrapTException(err2)
     }
-    if err2 := _exc28.Write(ctx, oprot); _write_err27 == nil && err2 != nil {
-      _write_err27 = thrift.WrapTException(err2)
+    if err2 := _exc34.Write(ctx, oprot); _write_err33 == nil && err2 != nil {
+      _write_err33 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.WriteMessageEnd(ctx); _write_err27 == nil && err2 != nil {
-      _write_err27 = thrift.WrapTException(err2)
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err33 == nil && err2 != nil {
+      _write_err33 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.Flush(ctx); _write_err27 == nil && err2 != nil {
-      _write_err27 = thrift.WrapTException(err2)
+    if err2 := oprot.Flush(ctx); _write_err33 == nil && err2 != nil {
+      _write_err33 = thrift.WrapTException(err2)
     }
-    if _write_err27 != nil {
-      return false, thrift.WrapTException(_write_err27)
+    if _write_err33 != nil {
+      return false, thrift.WrapTException(_write_err33)
     }
     return true, err
   } else {
@@ -1493,19 +1613,19 @@ func (p *wfsIfaceProcessorGet) Process(ctx context.Context, seqId int32, iprot, 
   }
   tickerCancel()
   if err2 := oprot.WriteMessageBegin(ctx, "Get", thrift.REPLY, seqId); err2 != nil {
-    _write_err27 = thrift.WrapTException(err2)
+    _write_err33 = thrift.WrapTException(err2)
   }
-  if err2 := result.Write(ctx, oprot); _write_err27 == nil && err2 != nil {
-    _write_err27 = thrift.WrapTException(err2)
+  if err2 := result.Write(ctx, oprot); _write_err33 == nil && err2 != nil {
+    _write_err33 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.WriteMessageEnd(ctx); _write_err27 == nil && err2 != nil {
-    _write_err27 = thrift.WrapTException(err2)
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err33 == nil && err2 != nil {
+    _write_err33 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.Flush(ctx); _write_err27 == nil && err2 != nil {
-    _write_err27 = thrift.WrapTException(err2)
+  if err2 := oprot.Flush(ctx); _write_err33 == nil && err2 != nil {
+    _write_err33 = thrift.WrapTException(err2)
   }
-  if _write_err27 != nil {
-    return false, thrift.WrapTException(_write_err27)
+  if _write_err33 != nil {
+    return false, thrift.WrapTException(_write_err33)
   }
   return true, err
 }
@@ -1515,7 +1635,7 @@ type wfsIfaceProcessorPing struct {
 }
 
 func (p *wfsIfaceProcessorPing) Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-  var _write_err29 error
+  var _write_err35 error
   args := WfsIfacePingArgs{}
   if err2 := args.Read(ctx, iprot); err2 != nil {
     iprot.ReadMessageEnd(ctx)
@@ -1566,21 +1686,21 @@ func (p *wfsIfaceProcessorPing) Process(ctx context.Context, seqId int32, iprot,
         return false, thrift.WrapTException(err)
       }
     }
-    _exc30 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Ping: " + err2.Error())
+    _exc36 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Ping: " + err2.Error())
     if err2 := oprot.WriteMessageBegin(ctx, "Ping", thrift.EXCEPTION, seqId); err2 != nil {
-      _write_err29 = thrift.WrapTException(err2)
+      _write_err35 = thrift.WrapTException(err2)
     }
-    if err2 := _exc30.Write(ctx, oprot); _write_err29 == nil && err2 != nil {
-      _write_err29 = thrift.WrapTException(err2)
+    if err2 := _exc36.Write(ctx, oprot); _write_err35 == nil && err2 != nil {
+      _write_err35 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.WriteMessageEnd(ctx); _write_err29 == nil && err2 != nil {
-      _write_err29 = thrift.WrapTException(err2)
+    if err2 := oprot.WriteMessageEnd(ctx); _write_err35 == nil && err2 != nil {
+      _write_err35 = thrift.WrapTException(err2)
     }
-    if err2 := oprot.Flush(ctx); _write_err29 == nil && err2 != nil {
-      _write_err29 = thrift.WrapTException(err2)
+    if err2 := oprot.Flush(ctx); _write_err35 == nil && err2 != nil {
+      _write_err35 = thrift.WrapTException(err2)
     }
-    if _write_err29 != nil {
-      return false, thrift.WrapTException(_write_err29)
+    if _write_err35 != nil {
+      return false, thrift.WrapTException(_write_err35)
     }
     return true, err
   } else {
@@ -1588,19 +1708,19 @@ func (p *wfsIfaceProcessorPing) Process(ctx context.Context, seqId int32, iprot,
   }
   tickerCancel()
   if err2 := oprot.WriteMessageBegin(ctx, "Ping", thrift.REPLY, seqId); err2 != nil {
-    _write_err29 = thrift.WrapTException(err2)
+    _write_err35 = thrift.WrapTException(err2)
   }
-  if err2 := result.Write(ctx, oprot); _write_err29 == nil && err2 != nil {
-    _write_err29 = thrift.WrapTException(err2)
+  if err2 := result.Write(ctx, oprot); _write_err35 == nil && err2 != nil {
+    _write_err35 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.WriteMessageEnd(ctx); _write_err29 == nil && err2 != nil {
-    _write_err29 = thrift.WrapTException(err2)
+  if err2 := oprot.WriteMessageEnd(ctx); _write_err35 == nil && err2 != nil {
+    _write_err35 = thrift.WrapTException(err2)
   }
-  if err2 := oprot.Flush(ctx); _write_err29 == nil && err2 != nil {
-    _write_err29 = thrift.WrapTException(err2)
+  if err2 := oprot.Flush(ctx); _write_err35 == nil && err2 != nil {
+    _write_err35 = thrift.WrapTException(err2)
   }
-  if _write_err29 != nil {
-    return false, thrift.WrapTException(_write_err29)
+  if _write_err35 != nil {
+    return false, thrift.WrapTException(_write_err35)
   }
   return true, err
 }
@@ -1995,6 +2115,233 @@ func (p *WfsIfaceDeleteResult) String() string {
     return "<nil>"
   }
   return fmt.Sprintf("WfsIfaceDeleteResult(%+v)", *p)
+}
+
+// Attributes:
+//  - Path
+//  - Newpath_
+type WfsIfaceRenameArgs struct {
+  Path string `thrift:"path,1" db:"path" json:"path"`
+  Newpath_ string `thrift:"newpath,2" db:"newpath" json:"newpath"`
+}
+
+func NewWfsIfaceRenameArgs() *WfsIfaceRenameArgs {
+  return &WfsIfaceRenameArgs{}
+}
+
+
+func (p *WfsIfaceRenameArgs) GetPath() string {
+  return p.Path
+}
+
+func (p *WfsIfaceRenameArgs) GetNewpath_() string {
+  return p.Newpath_
+}
+func (p *WfsIfaceRenameArgs) Read(ctx context.Context, iprot thrift.TProtocol) error {
+  if _, err := iprot.ReadStructBegin(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+  }
+
+
+  for {
+    _, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
+    if err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+    }
+    if fieldTypeId == thrift.STOP { break; }
+    switch fieldId {
+    case 1:
+      if fieldTypeId == thrift.STRING {
+        if err := p.ReadField1(ctx, iprot); err != nil {
+          return err
+        }
+      } else {
+        if err := iprot.Skip(ctx, fieldTypeId); err != nil {
+          return err
+        }
+      }
+    case 2:
+      if fieldTypeId == thrift.STRING {
+        if err := p.ReadField2(ctx, iprot); err != nil {
+          return err
+        }
+      } else {
+        if err := iprot.Skip(ctx, fieldTypeId); err != nil {
+          return err
+        }
+      }
+    default:
+      if err := iprot.Skip(ctx, fieldTypeId); err != nil {
+        return err
+      }
+    }
+    if err := iprot.ReadFieldEnd(ctx); err != nil {
+      return err
+    }
+  }
+  if err := iprot.ReadStructEnd(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+  }
+  return nil
+}
+
+func (p *WfsIfaceRenameArgs)  ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
+  if v, err := iprot.ReadString(ctx); err != nil {
+  return thrift.PrependError("error reading field 1: ", err)
+} else {
+  p.Path = v
+}
+  return nil
+}
+
+func (p *WfsIfaceRenameArgs)  ReadField2(ctx context.Context, iprot thrift.TProtocol) error {
+  if v, err := iprot.ReadString(ctx); err != nil {
+  return thrift.PrependError("error reading field 2: ", err)
+} else {
+  p.Newpath_ = v
+}
+  return nil
+}
+
+func (p *WfsIfaceRenameArgs) Write(ctx context.Context, oprot thrift.TProtocol) error {
+  if err := oprot.WriteStructBegin(ctx, "Rename_args"); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err) }
+  if p != nil {
+    if err := p.writeField1(ctx, oprot); err != nil { return err }
+    if err := p.writeField2(ctx, oprot); err != nil { return err }
+  }
+  if err := oprot.WriteFieldStop(ctx); err != nil {
+    return thrift.PrependError("write field stop error: ", err) }
+  if err := oprot.WriteStructEnd(ctx); err != nil {
+    return thrift.PrependError("write struct stop error: ", err) }
+  return nil
+}
+
+func (p *WfsIfaceRenameArgs) writeField1(ctx context.Context, oprot thrift.TProtocol) (err error) {
+  if err := oprot.WriteFieldBegin(ctx, "path", thrift.STRING, 1); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:path: ", p), err) }
+  if err := oprot.WriteString(ctx, string(p.Path)); err != nil {
+  return thrift.PrependError(fmt.Sprintf("%T.path (1) field write error: ", p), err) }
+  if err := oprot.WriteFieldEnd(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write field end error 1:path: ", p), err) }
+  return err
+}
+
+func (p *WfsIfaceRenameArgs) writeField2(ctx context.Context, oprot thrift.TProtocol) (err error) {
+  if err := oprot.WriteFieldBegin(ctx, "newpath", thrift.STRING, 2); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:newpath: ", p), err) }
+  if err := oprot.WriteString(ctx, string(p.Newpath_)); err != nil {
+  return thrift.PrependError(fmt.Sprintf("%T.newpath (2) field write error: ", p), err) }
+  if err := oprot.WriteFieldEnd(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write field end error 2:newpath: ", p), err) }
+  return err
+}
+
+func (p *WfsIfaceRenameArgs) String() string {
+  if p == nil {
+    return "<nil>"
+  }
+  return fmt.Sprintf("WfsIfaceRenameArgs(%+v)", *p)
+}
+
+// Attributes:
+//  - Success
+type WfsIfaceRenameResult struct {
+  Success *WfsAck `thrift:"success,0" db:"success" json:"success,omitempty"`
+}
+
+func NewWfsIfaceRenameResult() *WfsIfaceRenameResult {
+  return &WfsIfaceRenameResult{}
+}
+
+var WfsIfaceRenameResult_Success_DEFAULT *WfsAck
+func (p *WfsIfaceRenameResult) GetSuccess() *WfsAck {
+  if !p.IsSetSuccess() {
+    return WfsIfaceRenameResult_Success_DEFAULT
+  }
+return p.Success
+}
+func (p *WfsIfaceRenameResult) IsSetSuccess() bool {
+  return p.Success != nil
+}
+
+func (p *WfsIfaceRenameResult) Read(ctx context.Context, iprot thrift.TProtocol) error {
+  if _, err := iprot.ReadStructBegin(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+  }
+
+
+  for {
+    _, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
+    if err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+    }
+    if fieldTypeId == thrift.STOP { break; }
+    switch fieldId {
+    case 0:
+      if fieldTypeId == thrift.STRUCT {
+        if err := p.ReadField0(ctx, iprot); err != nil {
+          return err
+        }
+      } else {
+        if err := iprot.Skip(ctx, fieldTypeId); err != nil {
+          return err
+        }
+      }
+    default:
+      if err := iprot.Skip(ctx, fieldTypeId); err != nil {
+        return err
+      }
+    }
+    if err := iprot.ReadFieldEnd(ctx); err != nil {
+      return err
+    }
+  }
+  if err := iprot.ReadStructEnd(ctx); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+  }
+  return nil
+}
+
+func (p *WfsIfaceRenameResult)  ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
+  p.Success = &WfsAck{}
+  if err := p.Success.Read(ctx, iprot); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
+  }
+  return nil
+}
+
+func (p *WfsIfaceRenameResult) Write(ctx context.Context, oprot thrift.TProtocol) error {
+  if err := oprot.WriteStructBegin(ctx, "Rename_result"); err != nil {
+    return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err) }
+  if p != nil {
+    if err := p.writeField0(ctx, oprot); err != nil { return err }
+  }
+  if err := oprot.WriteFieldStop(ctx); err != nil {
+    return thrift.PrependError("write field stop error: ", err) }
+  if err := oprot.WriteStructEnd(ctx); err != nil {
+    return thrift.PrependError("write struct stop error: ", err) }
+  return nil
+}
+
+func (p *WfsIfaceRenameResult) writeField0(ctx context.Context, oprot thrift.TProtocol) (err error) {
+  if p.IsSetSuccess() {
+    if err := oprot.WriteFieldBegin(ctx, "success", thrift.STRUCT, 0); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field begin error 0:success: ", p), err) }
+    if err := p.Success.Write(ctx, oprot); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.Success), err)
+    }
+    if err := oprot.WriteFieldEnd(ctx); err != nil {
+      return thrift.PrependError(fmt.Sprintf("%T write field end error 0:success: ", p), err) }
+  }
+  return err
+}
+
+func (p *WfsIfaceRenameResult) String() string {
+  if p == nil {
+    return "<nil>"
+  }
+  return fmt.Sprintf("WfsIfaceRenameResult(%+v)", *p)
 }
 
 // Attributes:
