@@ -16,13 +16,14 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	. "github.com/donnie4w/gofer/hashmap"
 	"github.com/donnie4w/gofer/lock"
 	. "github.com/donnie4w/gofer/mmap"
 	goutil "github.com/donnie4w/gofer/util"
 	"github.com/donnie4w/simplelog/logging"
-	. "github.com/donnie4w/wfs/stub"
+	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -68,6 +69,9 @@ func init() {
 	sys.SearchLimit = fe.findLimit
 	sys.FragAnalysis = fe.fragAnalysis
 	sys.Defrag = fe.defrag
+	sys.Import = importData
+	sys.Export = exportData
+	sys.Modify = fe.modify
 }
 
 func initStore() (err error) {
@@ -201,8 +205,10 @@ func (t *fileEg) findLike(pathprx string) (_r []*sys.PathBean) {
 			if wpbbs, err := wfsdb.Get(pathseqkey); err == nil {
 				wpb := bytesToWfsPathBean(wpbbs)
 				if bs := t.getData(*wpb.Path); bs != nil {
-					pb := &sys.PathBean{Path: *wpb.Path, Body: bs, Timestramp: *wpb.Timestramp}
+					pb := &sys.PathBean{Id: i, Path: *wpb.Path, Body: bs, Timestramp: *wpb.Timestramp}
 					_r = append(_r, pb)
+				} else {
+					t.delData(*wpb.Path)
 				}
 			}
 		}
@@ -224,6 +230,8 @@ func (t *fileEg) findLimit(start, limit int64) (_r []*sys.PathBean) {
 				pb := &sys.PathBean{Id: i, Path: *wpb.Path, Body: bs, Timestramp: *wpb.Timestramp}
 				_r = append(_r, pb)
 				count++
+			} else {
+				t.delData(*wpb.Path)
 			}
 		} else if i > seq {
 			count++
@@ -232,29 +240,37 @@ func (t *fileEg) findLimit(start, limit int64) (_r []*sys.PathBean) {
 	return
 }
 
-func (t *fileEg) append(path string, bs []byte, compressType int32) (_r sys.ERROR) {
+func (t *fileEg) append(path string, bs []byte, compressType int32) (id int64, _r sys.ERROR) {
 	if stopstat {
-		return sys.ERR_STOPSERVICE
+		return id, sys.ERR_STOPSERVICE
+	}
+	if path == "" || bs == nil || len(bs) == 0 {
+		return id, sys.ERR_PARAMS
 	}
 	if len(bs) > int(sys.FileSize) {
-		return sys.ERR_OVERSIZE
+		return id, sys.ERR_OVERSIZE
 	}
 	node := t.handler.Node
 	var nf bool
-	if nf, _r = t.handler.append(path, bs, compressType); _r != nil && _r.Equal(sys.ERR_OVERSIZE) {
-		t.next(node)
-		return t.append(path, bs, compressType)
-	} else if nf && _r == nil && sys.Mode == 1 {
+	if nf, _r = t.handler.append(path, bs, compressType); _r != nil && _r.Equal(sys.ERR_FILEAPPEND) {
+		if err := t.next(node); err == nil {
+			nf, _r = t.handler.append(path, bs, compressType)
+		} else {
+			return id, sys.ERR_FILECREATE
+		}
+	}
+
+	if nf && _r == nil && sys.Mode == 1 {
 		m := make(map[*[]byte][]byte, 0)
-		i := atomic.AddInt64(&seq, 1)
+		id = atomic.AddInt64(&seq, 1)
 
 		m[&SEQ] = goutil.Int64ToBytes(seq)
 		pathpre := append(PATH_PRE, []byte(path)...)
-		m[&pathpre] = goutil.Int64ToBytes(i)
+		m[&pathpre] = goutil.Int64ToBytes(id)
 
-		pathseqkey := append(PATH_SEQ, goutil.Int64ToBytes(i)...)
+		pathseqkey := append(PATH_SEQ, goutil.Int64ToBytes(id)...)
 		t := time.Now().UnixNano()
-		wpb := &WfsPathBean{Path: &path, Timestramp: &t}
+		wpb := &stub.WfsPathBean{Path: &path, Timestramp: &t}
 		m[&pathseqkey] = wfsPathBeanToBytes(wpb)
 
 		wfsdb.BatchPut(m)
@@ -321,16 +337,62 @@ func (t *fileEg) delData(path string) (_r sys.ERROR) {
 	} else {
 		catchDel(fidbs)
 	}
-
 	return
 }
 
-func (t *fileEg) next(node string) {
+func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
+	if stopstat {
+		return sys.ERR_STOPSERVICE
+	}
+	if path == "" || newpath == "" || path == newpath {
+		return sys.ERR_PARAMS
+	}
+	am := make(map[*[]byte][]byte, 0)
+	dm := make([][]byte, 0)
+	fid := goutil.CRC64([]byte(path))
+	fidbs := goutil.Int64ToBytes(int64(fid))
+	dm = append(dm, fidbs)
+	newfid := goutil.CRC64([]byte(newpath))
+	newfidbs := goutil.Int64ToBytes(int64(newfid))
+	pathpre := append(PATH_PRE, []byte(path)...)
+	dm = append(dm, pathpre)
+	if v, err := wfsdb.Get(pathpre); err == nil {
+		newpathpre := append(PATH_PRE, []byte(newpath)...)
+		am[&newpathpre] = v
+
+		i := goutil.BytesToInt64(v)
+		pathseqkey := append(PATH_SEQ, goutil.Int64ToBytes(i)...)
+		if v, err := wfsdb.Get(pathseqkey); err == nil {
+			wpb := bytesToWfsPathBean(v)
+			wpb.Path = &newpath
+			am[&pathseqkey] = wfsPathBeanToBytes(wpb)
+		}
+	} else {
+		return sys.ERR_NOTEXSIT
+	}
+	if oldBidBs, err := wfsdb.Get(fidbs); err == nil && oldBidBs != nil {
+		am[&newfidbs] = oldBidBs
+	} else {
+		return sys.ERR_NOTEXSIT
+	}
+	if _, err := wfsdb.Get(newfidbs); err != nil && len(am) > 0 && len(dm) > 0 {
+		if wfsdb.Batch(am, dm) == nil {
+			catchDel(fidbs)
+			catchDel(pathpre)
+		}
+	} else {
+		return sys.ERR_NEWPATHEXIST
+	}
+	return
+}
+
+func (t *fileEg) next(node string) (err error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	if node == t.handler.Node {
-		t.handler, _ = initFileHandler("")
+		t.handler, err = initFileHandler("")
 	}
+	return
 }
 
 func (t *fileEg) defrag(node string) (err sys.ERROR) {
@@ -384,7 +446,7 @@ func (t *fileEg) defrag(node string) (err sys.ERROR) {
 				f = nil
 			} else {
 				newbat[&newOffset] = goutil.Int64ToBytes(size)
-				newbat[&newnidbs] = wfsNodeBeanToBytes(&WfsNodeBean{Rmsize: new(int64)})
+				newbat[&newnidbs] = wfsNodeBeanToBytes(&stub.WfsNodeBean{Rmsize: new(int64)})
 			}
 			wfsdb.Batch(newbat, [][]byte{oldOffsBs})
 			dataEg.unMmap(node)
@@ -539,7 +601,7 @@ func newFileHandler() (fh *fileHandler, err error) {
 				fmap := make(map[*[]byte][]byte, 0)
 				ofsBs := append(ENDOFFSET_, nidbs...)
 				fmap[&ofsBs] = []byte{0}
-				fmap[&nidbs] = wfsNodeBeanToBytes(&WfsNodeBean{Rmsize: new(int64)})
+				fmap[&nidbs] = wfsNodeBeanToBytes(&stub.WfsNodeBean{Rmsize: new(int64)})
 				fmap[&CURRENT] = []byte(node)
 				err = wfsdb.BatchPut(fmap)
 			}
@@ -576,7 +638,7 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 					atomic.AddInt32(refer, 1)
 				}
 
-				wfb := &WfsFileBean{Storenode: &t.Node, Size: &size, CompressType: &compressType, Refercount: refer}
+				wfb := &stub.WfsFileBean{Storenode: &t.Node, Size: &size, CompressType: &compressType, Refercount: refer}
 
 				fmap := make(map[*[]byte][]byte, 0)
 
@@ -585,13 +647,13 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 					if n, err := t.mm.Append(append(bs, storeBytes...)); err == nil {
 						wfb.Offset = &n
 					} else {
-						return nf, sys.ERR_OVERSIZE
+						return nf, sys.ERR_FILEAPPEND
 					}
 				} else {
 					if n, err := t.mm.AppendSync(append(bs, storeBytes...)); err == nil {
 						wfb.Offset = &n
 					} else {
-						return nf, sys.ERR_OVERSIZE
+						return nf, sys.ERR_FILEAPPEND
 					}
 				}
 
@@ -608,16 +670,13 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 				}
 
 			} else {
-				return nf, sys.ERR_OVERSIZE
+				return nf, sys.ERR_FILEAPPEND
 			}
 		} else {
 			wfbbs = v
 		}
-
 		batchmap := make(map[*[]byte][]byte, 0)
-
 		var dels [][]byte
-
 		if oldBidBs, err := wfsdb.Get(fidBs); err == nil && oldBidBs != nil {
 			if bytes.Equal(oldBidBs, bidBs) {
 				return nf, sys.ERR_EXSIT
@@ -659,5 +718,61 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 	} else {
 		return nf, sys.ERR_PARAMS
 	}
+	return
+}
+
+func exportData(streamfunc func(bean *stub.SnapshotBean) bool) (err error) {
+	defer util.Recover()
+	return wfsdb.SnapshotToStream(nil, streamfunc)
+}
+
+func importData(bean *stub.SnapshotBean, cover bool) (err error) {
+	defer util.Recover()
+	if bean == nil {
+		return errors.New("data is nil")
+	}
+	if bytes.Equal(bean.Key, CURRENT) || bytes.Equal(bean.Key, COUNT) || bytes.Equal(bean.Key, SEQ) {
+		return
+	}
+	if len(bean.Key) == 17 && bytes.Equal(bean.Key[:9], PATH_SEQ) {
+		wppb := bytesToWfsPathBean(bean.Value)
+		path := *wppb.Path
+		pathpre := append(PATH_PRE, []byte(path)...)
+		am := make(map[*[]byte][]byte, 0)
+		dm := make([][]byte, 0)
+		if v, e := wfsdb.Get(pathpre); e == nil {
+			if !cover {
+				return
+			}
+			oldpathseqkey := append(PATH_SEQ, v...)
+			dm = append(dm, oldpathseqkey)
+		} else {
+			am[&COUNT] = goutil.Int64ToBytes(atomic.AddInt64(&count, 1))
+		}
+		id := atomic.AddInt64(&seq, 1)
+		am[&SEQ] = goutil.Int64ToBytes(seq)
+		am[&pathpre] = goutil.Int64ToBytes(id)
+		pathseqkey := append(PATH_SEQ, goutil.Int64ToBytes(id)...)
+		am[&pathseqkey] = bean.Value
+		wfsdb.Batch(am, dm)
+		return
+	}
+
+	if len(bean.Key) > 2 && bytes.Equal(bean.Key[:2], PATH_PRE) && len(bean.Value) == 8 {
+		paths := bean.Key[2:]
+		b := true
+		for _, v := range paths {
+			if v > unicode.MaxASCII {
+				b = false
+			}
+		}
+		if b && goutil.BytesToInt64(bean.Value) < 1<<50 {
+			return
+		}
+	}
+	if len(bean.Key) == 8 {
+		catchDel(bean.Key)
+	}
+	err = wfsdb.LoadSnapshotBean(bean)
 	return
 }
