@@ -24,8 +24,10 @@ import (
 	"github.com/donnie4w/gofer/image"
 	tldbKs "github.com/donnie4w/gofer/keystore"
 	goutil "github.com/donnie4w/gofer/util"
+	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/tlnet"
 	. "github.com/donnie4w/wfs/keystore"
+	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
 )
@@ -33,6 +35,7 @@ import (
 func init() {
 	sys.Serve.Put(4, adminservice)
 	sys.Serve.Put(5, clientservice)
+	sys.WsClient = newAdminLocalWsClient
 }
 
 type adminService struct {
@@ -54,10 +57,11 @@ func (t *adminService) Serve() (err error) {
 		go tlDebug()
 		<-time.After(500 * time.Millisecond)
 	}
-	t.addStopEvent()
+	t.addSignalEvent()
 	if sys.Conf.Init {
 		initAccount()
 	}
+	initStore()
 	if strings.TrimSpace(sys.WEBADDR) != "" {
 		err = t._serve(strings.TrimSpace(sys.WEBADDR), sys.Conf.Admin_Ssl_crt, sys.Conf.Admin_Ssl_crt_key)
 	}
@@ -73,13 +77,13 @@ func (t *adminService) Close() (err error) {
 	return
 }
 
-func (s *adminService) addStopEvent() {
+func (s *adminService) addSignalEvent() {
 	gosignal.ListenSignalEvent(func(sig os.Signal) {
 		sys.FmtLog("services closing down")
 		sys.Wfs.Close()
 		sys.FmtLog("services stopped")
 		os.Exit(0)
-	}, syscall.SIGTERM, syscall.SIGINT)
+	}, syscall.SIGTERM, syscall.SIGINT, syscall.Signal(0xa))
 }
 
 func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err error) {
@@ -106,6 +110,9 @@ func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err err
 	t.tlAdmin.HandleWebSocketBindConfig("/monitorData", mntHandler, mntConfig())
 	t.tlAdmin.HandleWithFilter("/append/", authFilter(), appendHandler)
 	t.tlAdmin.HandleWithFilter("/delete/", authFilter(), deleteHandler)
+	t.tlAdmin.HandleWithFilter("/rename", loginFilter(), renameHandler)
+	t.tlAdmin.HandleWebSocketBindConfig("/export", exportHandler, exportConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/import", importHandler, importConfig())
 
 	if serverCrt != "" && serverKey != "" {
 		sys.FmtLog("webAdmin start tls [", addr, "]")
@@ -158,17 +165,24 @@ func authFilter() (f *tlnet.Filter) {
 		if isLogin(hc) {
 			return false
 		}
-		name := hc.Request().Header.Get("username")
-		pwd := hc.Request().Header.Get("password")
-		if _r, ok := Admin.GetAdmin(name); ok {
-			if strings.EqualFold(_r.Pwd, goutil.Md5Str(pwd)) {
-				return false
-			}
+		if authAccount(hc) {
+			return false
 		}
 		hc.ResponseBytes(http.StatusUnauthorized, nil)
 		return true
 	})
 	return
+}
+
+func authAccount(hc *tlnet.HttpContext) bool {
+	name := hc.Request().Header.Get("username")
+	pwd := hc.Request().Header.Get("password")
+	if _r, ok := Admin.GetAdmin(name); ok {
+		if strings.EqualFold(_r.Pwd, goutil.Md5Str(pwd)) || strings.EqualFold(_r.Pwd, pwd) {
+			return true
+		}
+	}
+	return false
 }
 
 func getSessionid() string {
@@ -325,7 +339,6 @@ func loginHandler(hc *tlnet.HttpContext) {
 	loginHtml(hc)
 }
 
-/*****************************************************************************/
 func initHtml(hc *tlnet.HttpContext) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -367,6 +380,10 @@ func initAccount() {
 	if len(Admin.AdminList()) == 0 {
 		Admin.PutAdmin(sys.DefaultAccount[0], sys.DefaultAccount[1], 1)
 	}
+}
+
+func initStore() {
+	Admin.PutOther("webaddr", sys.WEBADDR)
 }
 
 func readHandler(hc *tlnet.HttpContext) {
@@ -463,7 +480,7 @@ func webclientInfo() (proxy string, protocol string, port int) {
 	if sys.Conf.Ssl_crt != "" && sys.Conf.Ssl_crt_key != "" {
 		protocol = "https://"
 	}
-	port = sys.Conf.Listen
+	port = sys.LISTEN
 	return
 }
 
@@ -493,15 +510,15 @@ func searchByPrev(prev string) (fp *FilePage) {
 			fp = &FilePage{FS: make([]*FileBean, 0), TotalNum: len(pbs), CurrentNum: 1}
 			fp.RevProxy, fp.CliProtocol, fp.ClientPort = webclientInfo()
 			for _, pb := range pbs {
-				fb := &FileBean{Name: pb.Path, Size: len(pb.Body), Time: util.TimestrampFormat(pb.Timestramp)}
+				fb := &FileBean{Name: pb.Path, Size: len(pb.Body), Time: util.TimestrampFormat(pb.Timestramp), Id: int(pb.Id)}
 				fp.FS = append(fp.FS, fb)
 			}
+			sort.Slice(fp.FS, func(i, j int) bool { return fp.FS[i].Id > fp.FS[j].Id })
 		}
 	}
 	return
 }
 
-/**********************************************************/
 func monitorHtml(hc *tlnet.HttpContext) {
 	tplToHtml(getLang(hc), MONITOR, nil, hc)
 }
@@ -531,4 +548,72 @@ func mntHandler(hc *tlnet.HttpContext) {
 			<-time.After(time.Duration(t) * time.Second)
 		}
 	}
+}
+
+func exportConfig() (wc *tlnet.WebsocketConfig) {
+	wc = &tlnet.WebsocketConfig{}
+	wc.OnOpen = func(hc *tlnet.HttpContext) {
+		if !authAccount(hc) {
+			hc.WS.Send([]byte{1})
+			hc.WS.Close()
+			return
+		}
+	}
+	return
+}
+
+func exportHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	bs := hc.WS.Read()
+	if len(bs) == 1 && bs[0] == 1 {
+		sys.Export(func(bean *stub.SnapshotBean) bool {
+			if bs, err := bean.ToBytes(); err == nil && hc.WS.Error == nil {
+				if err = hc.WS.Send(bs); err == nil {
+					return true
+				}
+			}
+			return false
+		})
+		hc.WS.Send([]byte{0})
+	}
+}
+
+func importConfig() (wc *tlnet.WebsocketConfig) {
+	wc = &tlnet.WebsocketConfig{}
+	wc.OnOpen = func(hc *tlnet.HttpContext) {
+		if !authAccount(hc) {
+			hc.WS.Send([]byte{1})
+			hc.WS.Close()
+			return
+		}
+	}
+	return
+}
+
+var importcover = true
+
+func importHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	bs := hc.WS.Read()
+
+	if len(bs) == 1 {
+		switch bs[0] {
+		case 1:
+			hc.WS.Send([]byte{0})
+		case 2:
+			importcover = true
+		case 3:
+			importcover = false
+		}
+		return
+	}
+
+	if sb, err := stub.BytesToSnapshotBean(bs); err == nil {
+		sys.Import(sb, importcover)
+	} else {
+		logging.Error(err)
+		hc.WS.Send([]byte{2})
+		hc.WS.Close()
+	}
+
 }
