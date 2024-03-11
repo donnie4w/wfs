@@ -15,7 +15,7 @@ import (
 	"github.com/donnie4w/gofer/hashmap"
 )
 
-const VERSION = "1.0.1"
+const VERSION = "1.0.2"
 
 const (
 	KB = 1 << 10
@@ -60,4 +60,10 @@ var (
 	OpenSSL        = &openssl{}
 	Memlimit       = int64(1 << 10)
 	defaultConf    = ""
+	host           = ""
+	user           = ""
+	pwd            = ""
+	out            = ""
+	cover          = false
+	extls          = false
 )
