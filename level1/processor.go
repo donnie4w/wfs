@@ -42,8 +42,8 @@ func (t *processhandle) Ping(ctx context.Context) (_r int8, _err error) {
 func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
-	defer cc.mux.Unlock()
 	cc.mux.Lock()
+	defer cc.mux.Unlock()
 	if noAuthAndClose(cc) {
 		_err = sys.ERR_AUTH.Error()
 		return
@@ -58,7 +58,7 @@ func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _e
 		if wf.Compress != nil {
 			compress = int32(*wf.Compress)
 		}
-		if err := sys.AppendData(wf.Name, wf.Data, compress); err != nil {
+		if _, err := sys.AppendData(wf.Name, wf.Data, compress); err != nil {
 			_r.Ok, _r.Error = false, err.WfsError()
 		}
 	}
@@ -70,8 +70,8 @@ func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _e
 func (t *processhandle) Delete(ctx context.Context, path string) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
-	defer cc.mux.Unlock()
 	cc.mux.Lock()
+	defer cc.mux.Unlock()
 	if noAuthAndClose(cc) {
 		_err = sys.ERR_AUTH.Error()
 		return
@@ -90,8 +90,8 @@ func (t *processhandle) Delete(ctx context.Context, path string) (_r *WfsAck, _e
 func (t *processhandle) Get(ctx context.Context, path string) (_r *WfsData, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
-	defer cc.mux.Unlock()
 	cc.mux.Lock()
+	defer cc.mux.Unlock()
 	if noAuthAndClose(cc) {
 		_err = sys.ERR_AUTH.Error()
 		return
@@ -115,6 +115,26 @@ func (t *processhandle) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err
 		ctx2CliContext(ctx).isAuth = true
 	} else {
 		_r.Ok, _r.Error = false, sys.ERR_NOPASS.WfsError()
+	}
+	return
+}
+
+// Parameters:
+//   - Path
+//   - Newpath_
+func (t *processhandle) Rename(ctx context.Context, path string, newpath string) (_r *WfsAck, _err error) {
+	defer util.Recover()
+	cc := ctx2CliContext(ctx)
+	cc.mux.Lock()
+	defer cc.mux.Unlock()
+	if noAuthAndClose(cc) {
+		_err = sys.ERR_AUTH.Error()
+		return
+	}
+	_r = &WfsAck{Ok: true}
+	if err := sys.Modify(path, newpath); err != nil {
+		_r.Ok = false
+		_r.Error = err.WfsError()
 	}
 	return
 }
