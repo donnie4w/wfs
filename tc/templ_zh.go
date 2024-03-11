@@ -62,7 +62,7 @@ const (
                         <option value="200">200</option>
                         <option value="500">500</option>
                     </select>
-                    <input class="text-center" id="totalNum" placeholder="Total" style="width: 60px;" readonly />
+                    <input class="text-center" id="totalNum" placeholder="总数" style="width: 60px;" readonly />
                     <button class="btn btn-primary" onclick="search(-1);">上一页</button>
                     <input class="text-center" id="pageNumber" placeholder="页码" value="0" style="width: 50px;" />
                     <button class="btn btn-primary" onclick="search(1);">下一页</button>&nbsp;
@@ -93,8 +93,28 @@ const (
                 <tbody id="fileTableBody">
                 </tbody>
             </table>
+            <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h6 class="modal-title" id="renameModalLabel"></h6>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="pathid" hidden>
+                            <input type="text" class="form-control" id="newpath" placeholder="请输入新路径">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary" onclick="renamesubmit()">确定</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <script>
+    
+            var aurl = "";
+            var map = new Map();
             function search(t) {
                 const formData = new FormData();
                 const pageNumber = parseInt(document.getElementById("pageNumber").value);
@@ -135,38 +155,45 @@ const (
                     document.getElementById("totalNum").value = data.TotalNum;
                     document.getElementById("pageNumber").value = data.CurrentNum;
                     const url = "/r/"
-                    let aurl = CliProtocol + window.location.hostname + ":" + ClientPort + "/"
-                    if (RevProxy != "") {
-                        aurl = RevProxy
+    
+                    if (aurl == "") {
+                        aurl = CliProtocol + window.location.hostname + ":" + ClientPort + "/"
+                        if (RevProxy != "") {
+                            aurl = RevProxy
+                        }
                     }
+                    map.clear()
                     let id = 1;
                     const fs = data.FS
                     if (Array.isArray(fs) && fs.length > 0) {
                         for (const item of fs) {
+                            map.set(item.Id, item.Name);
                             let tr = document.createElement('tr');
                             let d = '<td style="font-weight: bold;">' + item.Id + '</td>'
-                                + '<td>' + item.Name + '</td>'
+                                + '<td id="' + item.Id + '">' + item.Name + '</td>'
                                 + '<td>' + item.Size + '</td>'
                                 + '<td>' + item.Time + '</td>'
-                                + '<td><a href="' + aurl + item.Name + '" target="_blank"><img src="' + url + item.Name + "?" + Date.now() + '" height="60" onerror="this.src=\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=\';"/></a></td>'
-                                + '<td><button class="btn btn-primary" onclick=\'deletefile(this,"' + item.Name + '")\';">删除</button></td>'
+                                + '<td><a id="a' + item.Id + '" href="' + aurl + item.Name + '" target="_blank"><img src="' + url + item.Name + "?mode/2/h/60/" + Date.now() + '" height="60" onerror="this.src=\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=\';"/></a></td>'
+                                + '<td><button class="btn btn-primary m-1" onclick=\'renameshow(' + item.Id + ',"' + item.Name + '")\';">重命名</button><button class="btn btn-primary" onclick=\'deletefile(this,"' + item.Name + '")\';">删除</button></td>'
                             tr.innerHTML = d;
                             document.getElementById("fileTableBody").appendChild(tr);
                             document.getElementById("lastId").value = item.Id
                         }
                     }
                 }).catch(error => {
-                    // console.error('Error submitting form:', error);
+                    console.error('Error submitting form:', error);
                 });
-    
             }
+    
             document.getElementById('selectfile').addEventListener('click', function () {
                 clearFileInput();
                 document.getElementById('filebody').click();
             });
+    
             document.getElementById('filebody').addEventListener('change', function () {
                 document.getElementById("showfilename").innerHTML = document.getElementById('filebody').files[0].name + "<a href='javascript:;' onclick='clearFileInput()'>&#10006;</a>";
             });
+    
             function clearFileInput() {
                 document.getElementById("showfilename").innerHTML = ""
                 document.getElementById('filebody').value = ""
@@ -226,6 +253,49 @@ const (
                         console.error('Error:', error);
                     });
                 }
+            }
+    
+            const rnModal = new bootstrap.Modal(document.getElementById('renameModal'));
+    
+            function renameshow(id) {
+                rnModal.show();
+                document.getElementById("pathid").value = id;
+                document.getElementById("renameModalLabel").innerText = document.getElementById(id).innerText;
+                document.getElementById("newpath").value = document.getElementById(id).innerText;
+            }
+    
+            function renameModalhide() {
+                document.getElementById("pathid").value = "";
+                document.getElementById("newpath").value = "";
+                document.getElementById("renameModalLabel").innerText = "";
+                rnModal.hide();
+            }
+    
+            function renamesubmit() {
+                const formData = new FormData();
+                formData.append("path", map.get(parseInt(document.getElementById("pathid").value)))
+                formData.append("newpath", document.getElementById("newpath").value)
+                fetch('/rename', {
+                    method: 'POST',
+                    body: formData,
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTP error! status: ${response.status}");
+                    }
+                    return response.json();
+                }).then(data => {
+                    if (data.status) {
+                        let id = document.getElementById('pathid').value;
+                        document.getElementById(id).innerText = document.getElementById("newpath").value;
+                        document.getElementById("a" + id).href = aurl + document.getElementById("newpath").value;
+                        map.set(parseInt(id), document.getElementById("newpath").value)
+                        renameModalhide();
+                    } else {
+                        alert("重命名失败:" + data.desc)
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                });
             }
         </script>
     </body>
