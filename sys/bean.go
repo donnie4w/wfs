@@ -13,28 +13,28 @@ type Server interface {
 }
 
 type ConfBean struct {
-	FileSize           int64     `json:"filesize"`
-	Opaddr             string    `json:"opaddr"`
-	WebAddr            string    `json:"webaddr"`
-	Listen             int       `json:"listen"`
-	Admin_Ssl_crt      string    `json:"admin.ssl_certificate"`
-	Admin_Ssl_crt_key  string    `json:"admin.ssl_certificate_key"`
-	Ssl_crt            string    `json:"ssl_certificate"`
-	Ssl_crt_key        string    `json:"ssl_certificate_key"`
-	Memlimit           int64     `json:"memlimit"`
-	DataMaxsize        int64     `json:"data.maxsize"`
-	Init               bool      `json:"init"`
-	Keystore           *string   `json:"keystore"`
-	Mode               *int      `json:"mode"`
-	Sync               *bool     `json:"sync"`
-	Compress           *int32    `json:"compress"`
-	WfsData            *string   `json:"data.dir"`
-	SLASH              bool      `json:"prefix.slash"`
-	MaxSigma           float64   `json:"maxsigma"`
-	MaxSide            int       `json:"maxside"`
-	MaxPixel           int       `json:"maxpixel"`
-	Resample           int8      `json:"resample"`
-	ImgViewingRevProxy string    `json:"imgViewingRevProxy"`
+	FileSize           int64   `json:"filesize"`
+	Opaddr             string  `json:"opaddr"`
+	WebAddr            string  `json:"webaddr"`
+	Listen             int     `json:"listen"`
+	Admin_Ssl_crt      string  `json:"admin.ssl_certificate"`
+	Admin_Ssl_crt_key  string  `json:"admin.ssl_certificate_key"`
+	Ssl_crt            string  `json:"ssl_certificate"`
+	Ssl_crt_key        string  `json:"ssl_certificate_key"`
+	Memlimit           int64   `json:"memlimit"`
+	DataMaxsize        int64   `json:"data.maxsize"`
+	Init               bool    `json:"init"`
+	Keystore           *string `json:"keystore"`
+	Mode               *int    `json:"mode"`
+	Sync               *bool   `json:"sync"`
+	Compress           *int32  `json:"compress"`
+	WfsData            *string `json:"data.dir"`
+	SLASH              bool    `json:"prefix.slash"`
+	MaxSigma           float64 `json:"maxsigma"`
+	MaxSide            int     `json:"maxside"`
+	MaxPixel           int     `json:"maxpixel"`
+	Resample           int8    `json:"resample"`
+	ImgViewingRevProxy string  `json:"imgViewingRevProxy"`
 }
 
 type PathBean struct {
