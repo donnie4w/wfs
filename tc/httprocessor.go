@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -38,6 +39,11 @@ func appendHandler(hc *tlnet.HttpContext) {
 	}
 
 	name := hc.PostParam("filename")
+
+	if decoded, err := url.QueryUnescape(name); err == nil {
+		name = decoded
+	}
+
 	if name == "" {
 		if uri := hc.Request().RequestURI; len(uri) > 8 {
 			name = uri[8:]
@@ -47,7 +53,7 @@ func appendHandler(hc *tlnet.HttpContext) {
 	}
 
 	if len(bs) > 0 && name != "" {
-		if err := sys.AppendData(name, bs, sys.CompressType); err == nil {
+		if _, err := sys.AppendData(name, bs, sys.CompressType); err == nil {
 			hc.ResponseString(`{"status":true, "name":"` + name + `","size":` + strconv.Itoa(len(bs)) + `}`)
 		} else {
 			hc.ResponseString(`{"status":false, "desc":"` + err.WfsError().GetInfo() + `"}`)
@@ -75,5 +81,29 @@ func deleteHandler(hc *tlnet.HttpContext) {
 		} else {
 			hc.ResponseString(`{"status":false, "desc":"` + err.WfsError().GetInfo() + `"}`)
 		}
+	}
+}
+
+func renameHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	path := hc.PostParamTrimSpace("path")
+	newpath := hc.PostParamTrimSpace("newpath")
+
+	if decoded, err := url.QueryUnescape(path); err == nil {
+		path = decoded
+	}
+	if decoded, err := url.QueryUnescape(newpath); err == nil {
+		newpath = decoded
+	}
+
+	if path == "" || newpath == "" || path == newpath {
+		hc.ResponseString(`{"status":false, "desc":"` + sys.ERR_PARAMS.WfsError().GetInfo() + `"}`)
+		return
+	}
+
+	if err := sys.Modify(path, newpath); err == nil {
+		hc.ResponseString(`{"status":true}`)
+	} else {
+		hc.ResponseString(`{"status":false, "desc":"` + err.WfsError().GetInfo() + `"}`)
 	}
 }
