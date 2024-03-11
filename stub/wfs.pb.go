@@ -201,6 +201,61 @@ func (x *WfsPathBean) GetTimestramp() int64 {
 	return 0
 }
 
+type SnapshotBean struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key   []byte `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value []byte `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (x *SnapshotBean) Reset() {
+	*x = SnapshotBean{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_wfs_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SnapshotBean) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SnapshotBean) ProtoMessage() {}
+
+func (x *SnapshotBean) ProtoReflect() protoreflect.Message {
+	mi := &file_wfs_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SnapshotBean.ProtoReflect.Descriptor instead.
+func (*SnapshotBean) Descriptor() ([]byte, []int) {
+	return file_wfs_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SnapshotBean) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SnapshotBean) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 var File_wfs_proto protoreflect.FileDescriptor
 
 var file_wfs_proto_rawDesc = []byte{
@@ -221,8 +276,11 @@ var file_wfs_proto_rawDesc = []byte{
 	0x68, 0x42, 0x65, 0x61, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x1e, 0x0a, 0x0a, 0x74, 0x69, 0x6d,
 	0x65, 0x73, 0x74, 0x72, 0x61, 0x6d, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0a, 0x74,
-	0x69, 0x6d, 0x65, 0x73, 0x74, 0x72, 0x61, 0x6d, 0x70, 0x42, 0x08, 0x5a, 0x06, 0x2e, 0x2f, 0x73,
-	0x74, 0x75, 0x62,
+	0x69, 0x6d, 0x65, 0x73, 0x74, 0x72, 0x61, 0x6d, 0x70, 0x22, 0x36, 0x0a, 0x0c, 0x53, 0x6e, 0x61,
+	0x70, 0x73, 0x68, 0x6f, 0x74, 0x42, 0x65, 0x61, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76,
+	0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x42, 0x08, 0x5a, 0x06, 0x2e, 0x2f, 0x73, 0x74, 0x75, 0x62,
 }
 
 var (
@@ -237,11 +295,12 @@ func file_wfs_proto_rawDescGZIP() []byte {
 	return file_wfs_proto_rawDescData
 }
 
-var file_wfs_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_wfs_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_wfs_proto_goTypes = []interface{}{
-	(*WfsNodeBean)(nil), // 0: stub.WfsNodeBean
-	(*WfsFileBean)(nil), // 1: stub.WfsFileBean
-	(*WfsPathBean)(nil), // 2: stub.WfsPathBean
+	(*WfsNodeBean)(nil),  // 0: stub.WfsNodeBean
+	(*WfsFileBean)(nil),  // 1: stub.WfsFileBean
+	(*WfsPathBean)(nil),  // 2: stub.WfsPathBean
+	(*SnapshotBean)(nil), // 3: stub.SnapshotBean
 }
 var file_wfs_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -293,6 +352,18 @@ func file_wfs_proto_init() {
 				return nil
 			}
 		}
+		file_wfs_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SnapshotBean); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -300,7 +371,7 @@ func file_wfs_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_wfs_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
