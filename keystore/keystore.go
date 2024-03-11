@@ -50,6 +50,13 @@ func InitAdmin(dir string) (err error) {
 	return
 }
 
+func LoadAdmin(dir string) (err error) {
+	if KeyStore, err = LoadKeyStore(dir, "keystore.tdb"); err == nil {
+		Admin.Load()
+	}
+	return
+}
+
 func uuid() uint32 {
 	buf := bytes.NewBuffer([]byte{})
 	buf.Write(Int64ToBytes(int64(os.Getpid())))
