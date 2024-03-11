@@ -118,207 +118,210 @@ const (
 </html>
     `
 
-	fileEnText = `
-    <html>
+	fileEnText = `<html>
 
-<head>
-    <title>wfs</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="/bootstrap.css" rel="stylesheet">
-    <script src="/bootstrap.min.js" type="text/javascript"></script>
-</head>
-
-<body class="container">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/about">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-server"
-                    viewBox="0 0 16 16">
-                    <path
-                        d="M1.333 2.667C1.333 1.194 4.318 0 8 0s6.667 1.194 6.667 2.667V4c0 1.473-2.985 2.667-6.667 2.667S1.333 5.473 1.333 4V2.667z" />
-                    <path
-                        d="M1.333 6.334v3C1.333 10.805 4.318 12 8 12s6.667-1.194 6.667-2.667V6.334a6.51 6.51 0 0 1-1.458.79C11.81 7.684 9.967 8 8 8c-1.966 0-3.809-.317-5.208-.876a6.508 6.508 0 0 1-1.458-.79z" />
-                    <path
-                        d="M14.667 11.668a6.51 6.51 0 0 1-1.458.789c-1.4.56-3.242.876-5.21.876-1.966 0-3.809-.316-5.208-.876a6.51 6.51 0 0 1-1.458-.79v1.666C1.333 14.806 4.318 16 8 16s6.667-1.194 6.667-2.667v-1.665z" />
-                </svg>
-            </a>
-            <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarCollapse">
-                <div class="navbar-nav">
-                    <a class="nav-link" href='/init'>Account Management</a>
-                    <a class="nav-link active" href='/file'>File Management</a>
-                    <a class="nav-link" href='/fragment'>Fragmentation Cleanup</a>
-                    <a class="nav-link" href='/monitor'>System Monitoring</a>
+    <head>
+        <title>wfs</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="/bootstrap.css" rel="stylesheet">
+        <script src="/bootstrap.min.js" type="text/javascript"></script>
+    </head>
+    
+    <body class="container">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/about">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-server"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M1.333 2.667C1.333 1.194 4.318 0 8 0s6.667 1.194 6.667 2.667V4c0 1.473-2.985 2.667-6.667 2.667S1.333 5.473 1.333 4V2.667z" />
+                        <path
+                            d="M1.333 6.334v3C1.333 10.805 4.318 12 8 12s6.667-1.194 6.667-2.667V6.334a6.51 6.51 0 0 1-1.458.79C11.81 7.684 9.967 8 8 8c-1.966 0-3.809-.317-5.208-.876a6.508 6.508 0 0 1-1.458-.79z" />
+                        <path
+                            d="M14.667 11.668a6.51 6.51 0 0 1-1.458.789c-1.4.56-3.242.876-5.21.876-1.966 0-3.809-.316-5.208-.876a6.51 6.51 0 0 1-1.458-.79v1.666C1.333 14.806 4.318 16 8 16s6.667-1.194 6.667-2.667v-1.665z" />
+                    </svg>
+                </a>
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                    <div class="navbar-nav">
+                        <a class="nav-link" href='/init'>Account Management</a>
+                        <a class="nav-link active" href='/file'>File Management</a>
+                        <a class="nav-link" href='/fragment'>Fragmentation Cleanup</a>
+                        <a class="nav-link" href='/monitor'>System Monitoring</a>
+                    </div>
+                    <div class="navbar-nav ms-auto">
+                        <a class="nav-link" href='/login'>Log In</a>
+                        <a class="nav-link" href="/lang?lang=zh">[中文]</a>
+                    </div>
                 </div>
-                <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href='/login'>Log In</a>
-                    <a class="nav-link" href="/lang?lang=zh">[中文]</a>
+            </div>
+        </nav>
+        <div class="mt-1" style="font-size: xx-small;">
+            <div class="container m-1" style="font-size: small;">
+                <div class="input-group m-1">
+                    <input id="lastId" type="text" hidden>
+                    <input id="searchType" type="text" hidden>
+                    <span class="input-group-text">Default Search</span>
+                    <select id="pagecount">
+                        <option value="10">10</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                    </select>
+                    <input class="text-center" id="totalNum" placeholder="Total" style="width: 60px;" readonly />
+                    <button class="btn btn-primary" onclick="search(-1);">Previous</button>
+                    <input class="text-center" id="pageNumber" placeholder="page number" value="0" style="width: 50px;" />
+                    <button class="btn btn-primary" onclick="search(1);">Next</button>&nbsp;
+                    <button class="btn btn-primary" onclick="search(0);">Search</button>
+                </div>
+                <div class="input-group m-1">
+                    <span class="input-group-text">Search by Prefix</span>
+                    <input id="prevName" placeholder="Enter file prefix" style="width: 280px;" value="" />
+                    <button class="btn btn-primary" onclick="search(2);">Search</button>
+                </div>
+                <div class="input-group m-1">
+                    <input class="btn btn-secondary" id="selectfile" type="button" value="Select File" />
+                    <span type="text" class="input-group-text" value="" id="showfilename"></span>
+                    <input type="file" id="filebody" name="filebody" hidden />
+                    <input id="filepath" placeholder="Enter Custom Access Path" style="width: 230px;" value="" />
+                    <input class="btn btn-primary" onclick="upload();" value="Upload File" type="button" />
+                </div>
+            </div>
+            <table class="table table-striped" style="font-size: smaller;">
+                <tr>
+                    <th></th>
+                    <th>File Name</th>
+                    <th>Size (Bytes)</th>
+                    <th>Create Time</th>
+                    <th>Image Preview</th>
+                    <th>File Operations</th>
+                </tr>
+                <tbody id="fileTableBody">
+                </tbody>
+            </table>
+            <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h6 class="modal-title" id="renameModalLabel"></h6>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="pathid" hidden>
+                            <input type="text" class="form-control" id="newpath" placeholder="Enter a new path">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">cancel</button>
+                            <button type="submit" class="btn btn-primary" onclick="renamesubmit()">submit</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </nav>
-    <div class="mt-1" style="font-size: xx-small;">
-        <div class="container m-1" style="font-size: small;">
-            <div class="input-group m-1">
-                <input id="lastId" type="text" hidden>
-                <input id="searchType" type="text" hidden>
-                <span class="input-group-text">Default Search</span>
-                <select id="pagecount">
-                    <option value="10">10</option>
-                    <option value="50" selected>50</option>
-                    <option value="100">100</option>
-                    <option value="200">200</option>
-                    <option value="500">500</option>
-                </select>
-                <input class="text-center" id="totalNum" placeholder="Total" style="width: 60px;" readonly />
-                <button class="btn btn-primary" onclick="search(-1);">Previous</button>
-                <input class="text-center" id="pageNumber" placeholder="page number" value="0" style="width: 50px;" />
-                <button class="btn btn-primary" onclick="search(1);">Next</button>&nbsp;
-                <button class="btn btn-primary" onclick="search(0);">Search</button>
-            </div>
-            <div class="input-group m-1">
-                <span class="input-group-text">Search by Prefix</span>
-                <input id="prevName" placeholder="Enter file prefix" style="width: 280px;" value="" />
-                <button class="btn btn-primary" onclick="search(2);">Search</button>
-            </div>
-            <div class="input-group m-1">
-                <input class="btn btn-secondary" id="selectfile" type="button" value="Select File" />
-                <span type="text" class="input-group-text" value="" id="showfilename"></span>
-                <input type="file" id="filebody" name="filebody" hidden />
-                <input id="filepath" placeholder="Enter Custom Access Path" style="width: 230px;" value="" />
-                <input class="btn btn-primary" onclick="upload();" value="Upload File" type="button" />
-            </div>
-        </div>
-        <table class="table table-striped" style="font-size: smaller;">
-            <tr>
-                <th></th>
-                <th>File Name</th>
-                <th>Size (Bytes)</th>
-                <th>Create Time</th>
-                <th>Image Preview</th>
-                <th>File Operations</th>
-            </tr>
-            <tbody id="fileTableBody">
-            </tbody>
-        </table>
-    </div>
-    <script>
-        function search(t) {
-            const formData = new FormData();
-            const pageNumber = parseInt(document.getElementById("pageNumber").value);
-            formData.append('pagecount', document.getElementById("pagecount").value);
-            if (t == 0) {
-                formData.append('searchType', "1");
-                formData.append('pageNumber', pageNumber);
-            } else if (t == -1) {
-                formData.append('searchType', "1");
-                formData.append('pageNumber', pageNumber - 1);
-            } else if (t == 1) {
-                formData.append('searchType', "1");
-                formData.append('pageNumber', pageNumber + 1);
-                formData.append('lastId', document.getElementById("lastId").value);
-                document.getElementById("lastId").value = ""
-            } else if (t == 2) {
-                const prevName = document.getElementById("prevName").value
-                if (prevName == "") {
+        <script>
+    
+            var aurl = "";
+            var map = new Map();
+            function search(t) {
+                const formData = new FormData();
+                const pageNumber = parseInt(document.getElementById("pageNumber").value);
+                formData.append('pagecount', document.getElementById("pagecount").value);
+                if (t == 0) {
+                    formData.append('searchType', "1");
+                    formData.append('pageNumber', pageNumber);
+                } else if (t == -1) {
+                    formData.append('searchType', "1");
+                    formData.append('pageNumber', pageNumber - 1);
+                } else if (t == 1) {
+                    formData.append('searchType', "1");
+                    formData.append('pageNumber', pageNumber + 1);
+                    formData.append('lastId', document.getElementById("lastId").value);
+                    document.getElementById("lastId").value = ""
+                } else if (t == 2) {
+                    const prevName = document.getElementById("prevName").value
+                    if (prevName == "") {
+                        return
+                    }
+                    formData.append('prevName', document.getElementById("prevName").value);
+                    formData.append('searchType', "2");
+                }
+    
+                fetch('/filedata', {
+                    method: 'POST',
+                    body: formData,
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTP error! status: ${response.status}");
+                    }
+                    return response.json();
+                }).then(data => {
+                    document.getElementById("fileTableBody").innerHTML = ""
+                    const RevProxy = data.RevProxy;
+                    const ClientPort = data.ClientPort;
+                    const CliProtocol = data.CliProtocol
+                    document.getElementById("totalNum").value = data.TotalNum;
+                    document.getElementById("pageNumber").value = data.CurrentNum;
+                    const url = "/r/"
+    
+                    if (aurl == "") {
+                        aurl = CliProtocol + window.location.hostname + ":" + ClientPort + "/"
+                        if (RevProxy != "") {
+                            aurl = RevProxy
+                        }
+                    }
+                    map.clear()
+                    let id = 1;
+                    const fs = data.FS
+                    if (Array.isArray(fs) && fs.length > 0) {
+                        for (const item of fs) {
+                            map.set(item.Id, item.Name);
+                            let tr = document.createElement('tr');
+                            let d = '<td style="font-weight: bold;">' + item.Id + '</td>'
+                                + '<td id="' + item.Id + '">' + item.Name + '</td>'
+                                + '<td>' + item.Size + '</td>'
+                                + '<td>' + item.Time + '</td>'
+                                + '<td><a id="a' + item.Id + '" href="' + aurl + item.Name + '" target="_blank"><img src="' + url + item.Name + "?mode/2/h/60/" + Date.now() + '" height="60" onerror="this.src=\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=\';"/></a></td>'
+                                + '<td><button class="btn btn-primary m-1" onclick=\'renameshow(' + item.Id + ',"' + item.Name + '")\';">rename</button><button class="btn btn-primary" onclick=\'deletefile(this,"' + item.Name + '")\';">delete</button></td>'
+                            tr.innerHTML = d;
+                            document.getElementById("fileTableBody").appendChild(tr);
+                            document.getElementById("lastId").value = item.Id
+                        }
+                    }
+                }).catch(error => {
+                    console.error('Error submitting form:', error);
+                });
+            }
+    
+            document.getElementById('selectfile').addEventListener('click', function () {
+                clearFileInput();
+                document.getElementById('filebody').click();
+            });
+    
+            document.getElementById('filebody').addEventListener('change', function () {
+                document.getElementById("showfilename").innerHTML = document.getElementById('filebody').files[0].name + "<a href='javascript:;' onclick='clearFileInput()'>&#10006;</a>";
+            });
+    
+            function clearFileInput() {
+                document.getElementById("showfilename").innerHTML = ""
+                document.getElementById('filebody').value = ""
+            }
+    
+            function upload() {
+                const filebody = document.getElementById("filebody");
+                if (filebody.files.length == 0) {
                     return
                 }
-                formData.append('prevName', document.getElementById("prevName").value);
-                formData.append('searchType', "2");
-            }
-
-            fetch('/filedata', {
-                method: 'POST',
-                body: formData,
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error("HTTP error! status: ${response.status}");
+                const file = filebody.files[0];
+                const formData = new FormData();
+                formData.append("file", file, file.name)
+                const filepath = document.getElementById("filepath").value
+                if (filepath != "") {
+                    formData.append("filename", filepath)
                 }
-                return response.json();
-            }).then(data => {
-                document.getElementById("fileTableBody").innerHTML = ""
-                const RevProxy = data.RevProxy;
-                const ClientPort = data.ClientPort;
-                const CliProtocol = data.CliProtocol
-                document.getElementById("totalNum").value = data.TotalNum;
-                document.getElementById("pageNumber").value = data.CurrentNum;
-                const url = "/r/"
-                let aurl = CliProtocol + window.location.hostname + ":" + ClientPort + "/"
-                if (RevProxy != "") {
-                    aurl = RevProxy
-                }
-                let id = 1;
-                const fs = data.FS
-                if (Array.isArray(fs) && fs.length > 0) {
-                    for (const item of fs) {
-                        let tr = document.createElement('tr');
-                        let d = '<td style="font-weight: bold;">' + item.Id + '</td>'
-                            + '<td>' + item.Name + '</td>'
-                            + '<td>' + item.Size + '</td>'
-                            + '<td>' + item.Time + '</td>'
-                            + '<td><a href="' + aurl + item.Name + '" target="_blank"><img src="' + url + item.Name + "?" + Date.now() + '" height="60" onerror="this.src=\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=\';"/></a></td>'
-                            + '<td><button class="btn btn-primary" onclick=\'deletefile(this,"' + item.Name + '")\';">remove</button></td>'
-                        tr.innerHTML = d;
-                        document.getElementById("fileTableBody").appendChild(tr);
-                        document.getElementById("lastId").value = item.Id
-                    }
-                }
-            }).catch(error => {
-                // console.error('Error submitting form:', error);
-            });
-
-        }
-        document.getElementById('selectfile').addEventListener('click', function () {
-            clearFileInput();
-            document.getElementById('filebody').click();
-        });
-        document.getElementById('filebody').addEventListener('change', function () {
-            document.getElementById("showfilename").innerHTML = document.getElementById('filebody').files[0].name + "<a href='javascript:;' onclick='clearFileInput()'>&#10006;</a>";
-        });
-        function clearFileInput() {
-            document.getElementById("showfilename").innerHTML = ""
-            document.getElementById('filebody').value = ""
-        }
-
-        function upload() {
-            const filebody = document.getElementById("filebody");
-            if (filebody.files.length == 0) {
-                return
-            }
-            const file = filebody.files[0];
-            const formData = new FormData();
-            formData.append("file", file, file.name)
-            const filepath = document.getElementById("filepath").value
-            if (filepath != "") {
-                formData.append("filename", filepath)
-            }
-            fetch('/append/', {
-                method: 'POST',
-                body: formData,
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error("HTTP error! status: ${response.status}");
-                }
-                return response.json();
-            }).then(data => {
-                if (data.status) {
-                    alert("File upload successful:" + data.name)
-                    clearFileInput();
-                    document.getElementById("filepath").value = "";
-                } else {
-                    alert("File upload failed : " + data.desc)
-                }
-            })
-        }
-
-        function deletefile(t, name) {
-            const formData = new FormData();
-            formData.append("filename", name)
-            if (confirm("Confirm to delete this file？")) {
-                fetch('/delete/', {
-                    method: 'DELETE',
+                fetch('/append/', {
+                    method: 'POST',
                     body: formData,
                 }).then(response => {
                     if (!response.ok) {
@@ -327,21 +330,86 @@ const (
                     return response.json();
                 }).then(data => {
                     if (data.status) {
-                        console.log('Delete successful:', data);
-                        document.getElementById("fileTableBody").removeChild(t.parentNode.parentNode);
+                        alert("File Upload Sucessful:" + data.name)
+                        clearFileInput();
+                        document.getElementById("filepath").value = "";
                     } else {
-                        alert("Failed to delete the file：" + data.desc)
+                        alert("File Upload Failed" + data.desc)
+                    }
+                })
+            }
+    
+            function deletefile(t, name) {
+                const formData = new FormData();
+                formData.append("filename", name)
+                if (confirm("Confirm to delete the file？")) {
+                    fetch('/delete/', {
+                        method: 'DELETE',
+                        body: formData,
+                    }).then(response => {
+                        if (!response.ok) {
+                            throw new Error("HTTP error! status: ${response.status}");
+                        }
+                        return response.json();
+                    }).then(data => {
+                        if (data.status) {
+                            console.log('Delete successful:', data);
+                            document.getElementById("fileTableBody").removeChild(t.parentNode.parentNode);
+                        } else {
+                            alert("Failed to delete file：" + data.desc)
+                        }
+                    }).catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            }
+    
+            const rnModal = new bootstrap.Modal(document.getElementById('renameModal'));
+    
+            function renameshow(id) {
+                rnModal.show();
+                document.getElementById("pathid").value = id;
+                document.getElementById("renameModalLabel").innerText = document.getElementById(id).innerText;
+                document.getElementById("newpath").value = document.getElementById(id).innerText;
+            }
+    
+            function renameModalhide() {
+                document.getElementById("pathid").value = "";
+                document.getElementById("newpath").value = "";
+                document.getElementById("renameModalLabel").innerText = "";
+                rnModal.hide();
+            }
+    
+            function renamesubmit() {
+                const formData = new FormData();
+                formData.append("path", map.get(parseInt(document.getElementById("pathid").value)))
+                formData.append("newpath", document.getElementById("newpath").value)
+                fetch('/rename', {
+                    method: 'POST',
+                    body: formData,
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTP error! status: ${response.status}");
+                    }
+                    return response.json();
+                }).then(data => {
+                    if (data.status) {
+                        let id = document.getElementById('pathid').value;
+                        document.getElementById(id).innerText = document.getElementById("newpath").value;
+                        document.getElementById("a" + id).href = aurl + document.getElementById("newpath").value;
+                        map.set(parseInt(id), document.getElementById("newpath").value)
+                        renameModalhide();
+                    } else {
+                        alert("file rename failed:" + data.desc)
                     }
                 }).catch(error => {
                     console.error('Error:', error);
                 });
             }
-        }
-    </script>
-</body>
-
-</html>
-    `
+        </script>
+    </body>
+    
+    </html>`
 
 	fragmentEnText = `
     <html>
