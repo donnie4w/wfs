@@ -7,12 +7,10 @@
 package stroge
 
 import (
-	"bytes"
-	"io"
 	"os"
 	"sync"
 
-	goutil "github.com/donnie4w/gofer/util"
+	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -227,91 +225,45 @@ func (t *ldb) GetIterLimit(prefix string, limit string) (datamap map[string][]by
 	return
 }
 
-func (t *ldb) Snapshot() (*leveldb.Snapshot, error) {
-	return t.db.GetSnapshot()
-}
-
-// ////////////////////////////////////////////////////////
-type BakStub struct {
-	Key   []byte
-	Value []byte
-}
-
-func (t *BakStub) copy(k, v []byte) {
-	t.Key, t.Value = make([]byte, len(k)), make([]byte, len(v))
-	copy(t.Key, k)
-	copy(t.Value, v)
-}
-
-func (t *ldb) BackupToDisk(filename string, prefix []byte) error {
+func (t *ldb) SnapshotToStream(prefix []byte, streamfunc func(bean *stub.SnapshotBean) bool) (err error) {
 	defer util.Recover()
-	snap, err := t.Snapshot()
+	snap, err := t.db.GetSnapshot()
 	if err != nil {
 		return err
 	}
 	defer snap.Release()
-	bs := _TraverseSnap(snap, prefix)
-	b, e := goutil.Encode(bs)
-	if e != nil {
-		return e
+	var ran *levelutil.Range
+	if prefix != nil {
+		ran = levelutil.BytesPrefix(prefix)
 	}
-	f, er := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	if er != nil {
-		return er
-	}
-	defer f.Close()
-	_, er = f.Write(b)
-	return er
-}
-
-func RecoverBackup(filename string) (bs []*BakStub) {
-	defer util.Recover()
-	f, er := os.Open(filename)
-	if er == nil {
-		defer f.Close()
-	} else {
-		return
-	}
-	var buf bytes.Buffer
-	_, err := io.Copy(&buf, f)
-	if err == nil {
-		goutil.Decode[[]*BakStub](buf.Bytes())
-	}
-	return
-}
-func (t *ldb) LoadDataFile(filename string) (err error) {
-	bs := RecoverBackup(filename)
-	for _, v := range bs {
-		err = t.Put(v.Key, v.Value)
-	}
-	return
-}
-
-func (t *ldb) LoadBytes(buf []byte) (err error) {
-	var bs []*BakStub
-	err = util.Decode(buf, &bs)
-	if err == nil {
-		for _, v := range bs {
-			err = t.Put(v.Key, v.Value)
+	iter := snap.NewIterator(ran, nil)
+	defer iter.Release()
+	for iter.Next() {
+		bean := new(stub.SnapshotBean)
+		bean.Copy(iter.Key(), iter.Value())
+		if !streamfunc(bean) {
+			break
 		}
 	}
 	return
 }
 
-func _TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
-	ran := new(levelutil.Range)
-	if prefix != nil {
-		ran = levelutil.BytesPrefix(prefix)
-	} else {
-		ran = nil
+func (t *ldb) LoadSnapshotBeans(beans ...*stub.SnapshotBean) (err error) {
+	defer util.Recover()
+	if beans != nil {
+		batch := make(map[*[]byte][]byte, 0)
+		for _, bean := range beans {
+			batch[&bean.Key] = bean.Value
+		}
+		err = t.BatchPut(batch)
 	}
-	iter := snap.NewIterator(ran, nil)
-	defer iter.Release()
-	bs = make([]*BakStub, 0)
-	for iter.Next() {
-		ss := new(BakStub)
-		ss.copy(iter.Key(), iter.Value())
-		bs = append(bs, ss)
+	return
+}
+
+func (t *ldb) LoadSnapshotBean(bean *stub.SnapshotBean) (err error) {
+	defer util.Recover()
+	if bean != nil {
+		err = t.Put(bean.Key, bean.Value)
 	}
 	return
 }
