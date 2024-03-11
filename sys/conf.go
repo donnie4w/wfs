@@ -10,10 +10,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"sync/atomic"
+	"time"
 
 	goutil "github.com/donnie4w/gofer/util"
 	"github.com/donnie4w/simplelog/logging"
@@ -31,6 +34,13 @@ func praseflag() {
 	flag.StringVar(&Service, "s", "", "services command")
 	flag.StringVar(&Pid, "p", "", "path of wfs data or pid of wfs")
 	flag.IntVar(&GOGC, "gc", -1, "a collection is triggered when the ratio of freshly allocated data")
+
+	flag.StringVar(&host, "host", "", "host")
+	flag.StringVar(&user, "user", "", "user")
+	flag.StringVar(&pwd, "pwd", "", "pwd")
+	flag.StringVar(&out, "o", "", "path of metadata file")
+	flag.BoolVar(&cover, "cover", false, "whether to overwrite the same path data")
+	flag.BoolVar(&extls, "tls", false, "use tls")
 	flag.Parse()
 	parsec()
 
@@ -85,20 +95,8 @@ func praseflag() {
 		MaxPixel = Conf.MaxPixel
 	}
 
-	if Service == "stop" {
-		if Pid == "" {
-			if bs, err := goutil.ReadFile(WFSDATA + "/logs/wfs.pid"); err == nil {
-				Pid = string(bs)
-			}
-		} else {
-			if _, err := strconv.Atoi(Pid); err != nil {
-				if bs, err := goutil.ReadFile(Pid + "/logs/wfs.pid"); err == nil {
-					Pid = string(bs)
-				}
-			}
-		}
-		sendTerminated(Pid)
-		os.Exit(0)
+	if Service != "" {
+		praseService(Service)
 	}
 
 	flag.Usage = usage
@@ -116,14 +114,21 @@ func praseflag() {
 }
 
 func usage() {
-	exename := "wfs"
-	if runtime.GOOS == "windows" {
-		exename = "wfs.exe"
-	}
 	fmt.Fprintln(os.Stderr, `wfs version: wfs/`+VERSION+`
-Usage: `+exename+`	
-	-c: configuration file  e.g:  -c wfs.json
+Usage: `+exename()+`	
+	-c: configuration file  e.g: `+exename()+`  -c wfs.json
 `)
+}
+
+func exename() string {
+	switch runtime.GOOS {
+	case "windows":
+		return fmt.Sprint(runtime.GOOS, strings.ReplaceAll(VERSION, ".", ""), "_wfs", ".exe")
+	case "darwin":
+		return fmt.Sprint("mac", strings.ReplaceAll(VERSION, ".", ""), "_wfs")
+	default:
+		return fmt.Sprint(runtime.GOOS, strings.ReplaceAll(VERSION, ".", ""), "_wfs")
+	}
 }
 
 func parsec() {
@@ -133,8 +138,136 @@ func parsec() {
 		Conf = GetConfg()
 	}
 	if Conf == nil {
-		FmtLog("empty config")
 		Conf = &ConfBean{}
+	}
+}
+
+func praseService(s string) {
+	defer os.Exit(0)
+	switch s {
+	case "stop":
+		if Pid == "" {
+			if bs, err := goutil.ReadFile(WFSDATA + "/logs/wfs.pid"); err == nil {
+				Pid = string(bs)
+			}
+		} else {
+			if _, err := strconv.Atoi(Pid); err != nil {
+				if bs, err := goutil.ReadFile(Pid + "/logs/wfs.pid"); err == nil {
+					Pid = string(bs)
+				}
+			}
+		}
+		sendTerminated(Pid)
+	case "export":
+		if ws, err := WsClient(extls, host, "/export", user, pwd); err == nil {
+			ws.Send([]byte{1})
+			if out != "" {
+				if goutil.IsFileExist(out) {
+					fmt.Println("file already exists:", out)
+					return
+				}
+				os.MkdirAll(filepath.Dir(out), 0777)
+			} else {
+				out = "wfsmeta" + time.Now().Format("20060102150405")
+			}
+			if f, err := os.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_TRUNC, 0666); err == nil {
+				defer f.Close()
+				start := time.Now().Unix()
+				ws.Receive(func(bs []byte) bool {
+					if len(bs) == 1 {
+						switch bs[0] {
+						case 0:
+							fmt.Println(time.Now().Format(time.DateTime)+"，export data >>", out, "(", time.Now().Unix()-start, "s)")
+						case 1:
+							f.Close()
+							os.Remove(out)
+							fmt.Println(ERR_NOPASS.WfsError().GetInfo())
+							os.Exit(0)
+						}
+						return false
+					}
+					if _, err = f.Write(goutil.Int16ToBytes(int16(len(bs)))); err != nil {
+						fmt.Println(err.Error())
+						return false
+					}
+					if _, err = f.Write(bs); err != nil {
+						fmt.Println(err.Error())
+						return false
+					}
+					return true
+				})
+			} else {
+				fmt.Println(err.Error())
+			}
+		} else {
+			fmt.Println("export error:", err.Error())
+		}
+	case "import":
+		if !goutil.IsFileExist(out) {
+			fmt.Println("file does not exist:", out)
+			return
+		}
+		var ws *WS
+		var err error
+		if ws, err = WsClient(extls, host, "/import", user, pwd); err == nil {
+			start := time.Now().Unix()
+			go ws.Receive(func(bs []byte) bool {
+				if len(bs) == 1 {
+					switch bs[0] {
+					case 0:
+						fmt.Println(time.Now().Format(time.DateTime)+"，import data >>", out, "(", time.Now().Unix()-start, "s)")
+					case 1:
+						fmt.Println(ERR_NOPASS.WfsError().GetInfo())
+					case 2:
+						fmt.Println("server error")
+					}
+				}
+				os.Exit(0)
+				return false
+			})
+			var c byte = 2
+			if !cover {
+				c = 3
+			}
+			if err = ws.Send([]byte{c}); err == nil {
+				offset, n := 0, 0
+				var f *os.File
+				if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
+					defer f.Close()
+					fl, _ := f.Stat()
+					for offset < int(fl.Size()) {
+						head := make([]byte, 2)
+						if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 2 {
+							break
+						}
+						length := goutil.BytesToInt16(head)
+						body := make([]byte, length)
+						if n, err = f.ReadAt(body, int64(offset+2)); err != nil || n != int(length) {
+							break
+						}
+						if err = ws.Send(body); err != nil {
+							break
+						}
+						offset += 2 + int(length)
+					}
+					if err != nil {
+						goto ERR
+					}
+					err = ws.Send([]byte{1})
+					<-time.After(5 * time.Second)
+				}
+			}
+		ERR:
+			if err != nil {
+				fmt.Println("import error:", err.Error())
+			}
+		} else {
+			fmt.Println("import error:", err.Error())
+		}
+
+	default:
+		fmt.Printf("could not find service with: %s\n", s)
+		os.Exit(1)
 	}
 }
 
