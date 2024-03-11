@@ -3,14 +3,14 @@ module github.com/donnie4w/wfs
 go 1.22.0
 
 require (
-	github.com/donnie4w/gofer v0.0.0-20240306043700-9f83d4c59004
+	github.com/donnie4w/gofer v0.0.0-20240311114551-d52fdfcd46a9
 	github.com/donnie4w/gothrift v0.0.1
 	github.com/donnie4w/simplelog v0.0.1
 	github.com/donnie4w/tlnet v0.0.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/syndtr/goleveldb v1.0.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
