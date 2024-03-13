@@ -28,5 +28,5 @@ var (
 	Export       func(func(bean *stub.SnapshotBean) bool) error
 	Import       func(*stub.SnapshotBean, bool) error
 	Modify       func(string, string) ERROR
-	WsClient     func(tls bool, opaddr, requri, name, pwd string) (ws *WS, err error)
+	WsClient     func(tls bool, pid, opaddr, requri, name, pwd string) (ws *WS, err error)
 )
