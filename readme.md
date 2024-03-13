@@ -71,6 +71,19 @@ This overview illustrates the scale and significance of small file applications 
 
 ------------
 
+#### Application scenario
+
+1. **Massive Unstructured Data Storage**:
+   - **Social Media Content Storage**: In social networking platforms where users upload millions of images, videos, logs, backup data, and static asset files every day, this solution is well-suited for the storage of a vast amount of unstructured data.
+   
+2. **Efficient File Data Retrieval**:
+   - **Optimized File Access for Read-intensive Workloads**: The wfs storage engine is capable of achieving a data read rate of over one million operations per second, making it particularly suitable for businesses that heavily rely on frequent file reading tasks.
+
+3. **Multifaceted Image Processing Needs**:
+   - **Built-in Image Processing Capabilities**: wfs comes equipped with basic image processing functionality, making it ideal for businesses that have diverse requirements for image manipulation, such as resizing images for multiple dimensions, custom cropping, and more. 
+
+------------
+
 #### WFS-related Programs
 
 - WFS Source Code Address: https://github.com/donnie4w/wfs
@@ -89,29 +102,6 @@ This overview illustrates the scale and significance of small file applications 
 - Zero dependency
 - Management platform
 - Image processing
-
-------------
-
-#### Application scenario
-
-1. **Massive Unstructured Data Storage**:
-   - **Social Media Content Storage**: In social networking platforms where users upload millions of images, videos, logs, backup data, and static asset files every day, this solution is well-suited for the storage of a vast amount of unstructured data.
-   
-2. **Efficient File Data Retrieval**:
-   - **Optimized File Access for Read-intensive Workloads**: The wfs storage engine is capable of achieving a data read rate of over one million operations per second, making it particularly suitable for businesses that heavily rely on frequent file reading tasks.
-
-3. **Multifaceted Image Processing Needs**:
-   - **Built-in Image Processing Capabilities**: wfs comes equipped with basic image processing functionality, making it ideal for businesses that have diverse requirements for image manipulation, such as resizing images for multiple dimensions, custom cropping, and more. 
-
-------------
-
-#### Technical characteristics
-
-- High throughput and low latency: ensures data access speed in high-concurrency scenarios.
-- Supports multi-level data compression storage: saves storage space and improves storage efficiency.
-- Supports http(https) to access files
-- Support thrift protocol long connection to access files
-- Support basic image processing: built-in image processing to meet multimedia storage requirements.
 
 ------------
 
