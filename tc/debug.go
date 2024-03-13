@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"strings"
 
-	. "github.com/donnie4w/gofer/util"
+	goutil "github.com/donnie4w/gofer/util"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
 )
@@ -25,7 +25,7 @@ func tlDebug() {
 	if sys.DEBUGADDR != "" {
 		runtime.SetMutexProfileFraction(1)
 		runtime.SetBlockProfileRate(1)
-		if !strings.Contains(sys.DEBUGADDR, ":") && MatchString("^[0-9]{4,5}$", sys.DEBUGADDR) {
+		if !strings.Contains(sys.DEBUGADDR, ":") && goutil.MatchString("^[0-9]{4,5}$", sys.DEBUGADDR) {
 			sys.DEBUGADDR = fmt.Sprint(":", sys.DEBUGADDR)
 		}
 		sys.FmtLog("Debug start[", sys.DEBUGADDR, "]")
