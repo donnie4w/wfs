@@ -177,3 +177,14 @@ func CheckNodeId(nodeId int64) bool {
 	b8 := goutil.CRC8(bs[:7])
 	return b8 == bs[7]
 }
+
+func OpenFile(fname string, flag int, perm os.FileMode) (file *os.File, err error) {
+	if file, err = os.OpenFile(fname, flag, perm); err == nil {
+		if fi, err := file.Stat(); err == nil {
+			if fi.Mode().Perm() != perm {
+				file.Chmod(perm)
+			}
+		}
+	}
+	return
+}
