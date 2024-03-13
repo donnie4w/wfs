@@ -412,7 +412,7 @@ func fragmentHtml(hc *tlnet.HttpContext) {
 		}
 	}()
 	fbs := make([]*FragmentBean, 0)
-	filepath.WalkDir(sys.WFSDATA, func(path string, d fs.DirEntry, err error) error {
+	filepath.WalkDir(sys.WFSDATA+"/wfsfile", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -555,8 +555,8 @@ func exportConfig() (wc *tlnet.WebsocketConfig) {
 	wc.OnOpen = func(hc *tlnet.HttpContext) {
 		if !authAccount(hc) {
 			hc.WS.Send([]byte{1})
+			<-time.After(2 * time.Second)
 			hc.WS.Close()
-			return
 		}
 	}
 	return
@@ -583,8 +583,8 @@ func importConfig() (wc *tlnet.WebsocketConfig) {
 	wc.OnOpen = func(hc *tlnet.HttpContext) {
 		if !authAccount(hc) {
 			hc.WS.Send([]byte{1})
+			<-time.After(2 * time.Second)
 			hc.WS.Close()
-			return
 		}
 	}
 	return
