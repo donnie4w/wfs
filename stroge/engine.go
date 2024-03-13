@@ -10,9 +10,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -55,6 +57,10 @@ var wfsdb *ldb
 var stopstat bool
 var seq int64
 var count int64
+var defragStat = false
+var defragfile *os.File
+var unmountmap = &sync.Map{}
+var defragmap = &sync.Map{}
 
 func init() {
 	sys.Serve.Put(1, serve)
@@ -68,7 +74,7 @@ func init() {
 	sys.SearchLike = fe.findLike
 	sys.SearchLimit = fe.findLimit
 	sys.FragAnalysis = fe.fragAnalysis
-	sys.Defrag = fe.defrag
+	sys.Defrag = fe.defragAndCover
 	sys.Import = importData
 	sys.Export = exportData
 	sys.Modify = fe.modify
@@ -100,7 +106,27 @@ func initStore() (err error) {
 		length = 1 << 10
 	}
 	catch, _ = lru.New[string, []byte](int(length))
+	initDefrag()
 	return
+}
+
+func initDefrag() {
+	filepath.WalkDir(sys.WFSDATA+"/wfsfile", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			if strings.Contains(d.Name(), "_") {
+				name := d.Name()
+				name = name[:strings.Index(name, "_")]
+				if id, ok := strToInt(name); ok && util.CheckNodeId(int64(id)) {
+					os.Remove(path)
+					fe.defragAndCover(name)
+				}
+			}
+		}
+		return nil
+	})
 }
 
 var numlock = lock.NewNumLock(1 << 9)
@@ -121,7 +147,7 @@ func (t *dataHandler) openMMap(node string) (_r bool) {
 		if !t.mm.Has(id) {
 			path := getpathBynode(node)
 			if goutil.IsFileExist(path) {
-				if f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666); err == nil {
+				if f, err := util.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666); err == nil {
 					if n, err := NewMMAP(f, 0); err == nil {
 						t.mm.Put(id, n)
 						_r = true
@@ -135,14 +161,34 @@ func (t *dataHandler) openMMap(node string) (_r bool) {
 }
 
 func (t *dataHandler) getData(node string, offset int64, size int64) (bs []byte, ok bool) {
+	if defragStat {
+		if _, b := defragmap.Load(node); b {
+			if bs, b := t.getDataByfile(offset, size); b {
+				return bs, b
+			}
+		}
+	}
 	if id, b := strToInt(node); b {
-		if !t.mm.Has(id) {
+		if _, ok := unmountmap.Load(id); !ok && !t.mm.Has(id) {
 			t.openMMap(node)
 		}
 		if m, b := t.mm.Get(id); b {
 			if offset+size <= int64(len(m.Bytes())) {
 				bs, ok = m.Bytes()[offset:offset+size], true
 			}
+		}
+	}
+	return
+}
+
+func (t *dataHandler) getDataByfile(offset int64, size int64) (bs []byte, ok bool) {
+	defer util.Recover()
+	if defragfile != nil {
+		bs = make([]byte, size)
+		if n, err := defragfile.ReadAt(bs, offset); err == nil && n == int(size) {
+			return bs, true
+		} else {
+			return nil, false
 		}
 	}
 	return
@@ -162,11 +208,15 @@ func (t *dataHandler) reSetMMap(node string, m *Mmap) {
 
 func (t *dataHandler) unMmap(node string) {
 	if id, b := strToInt(node); b {
-		if oldm, b := t.mm.Get(id); b {
-			oldm.UnmapAndCloseFile()
-		}
-		t.mm.Del(id)
+		t.unMmapById(id)
 	}
+}
+
+func (t *dataHandler) unMmapById(id uint64) {
+	if oldm, b := t.mm.Get(id); b {
+		oldm.UnmapAndCloseFile()
+	}
+	t.mm.Del(id)
 }
 
 var fe = &fileEg{mux: &sync.Mutex{}}
@@ -196,6 +246,7 @@ func (t *fileEg) seq() int64 {
 }
 
 func (t *fileEg) findLike(pathprx string) (_r []*sys.PathBean) {
+	defer util.Recover()
 	pathpre := append(PATH_PRE, []byte(pathprx)...)
 	if bys, err := wfsdb.GetValuesPrefix(pathpre); err == nil {
 		_r = make([]*sys.PathBean, 0)
@@ -220,6 +271,7 @@ func (t *fileEg) findLimit(start, limit int64) (_r []*sys.PathBean) {
 	if start-limit > seq {
 		return
 	}
+	defer util.Recover()
 	var count int64
 	_r = make([]*sys.PathBean, 0)
 	for i := start; i > 0 && count < limit; i-- {
@@ -250,6 +302,7 @@ func (t *fileEg) append(path string, bs []byte, compressType int32) (id int64, _
 	if len(bs) > int(sys.FileSize) {
 		return id, sys.ERR_OVERSIZE
 	}
+	defer util.Recover()
 	node := t.handler.Node
 	var nf bool
 	if nf, _r = t.handler.append(path, bs, compressType); _r != nil && _r.Equal(sys.ERR_FILEAPPEND) {
@@ -282,6 +335,7 @@ func (t *fileEg) getData(path string) (_r []byte) {
 	if stopstat {
 		return nil
 	}
+	defer util.Recover()
 	fid := goutil.CRC64([]byte(path))
 	fidbs := goutil.Int64ToBytes(int64(fid))
 	if v, err := catchGet(fidbs); err == nil {
@@ -299,6 +353,7 @@ func (t *fileEg) delData(path string) (_r sys.ERROR) {
 	if stopstat {
 		return sys.ERR_STOPSERVICE
 	}
+	defer util.Recover()
 	fid := goutil.CRC64([]byte(path))
 	fidbs := goutil.Int64ToBytes(int64(fid))
 	batchmap := make(map[*[]byte][]byte, 0)
@@ -395,14 +450,18 @@ func (t *fileEg) next(node string) (err error) {
 	return
 }
 
+// Deprecated
 func (t *fileEg) defrag(node string) (err sys.ERROR) {
 	if stopstat {
 		return sys.ERR_STOPSERVICE
 	}
+	defragStat = true
 	defer func() {
 		if e := recover(); e != nil {
 			err = sys.ERR_UNDEFINED
 		}
+		defragStat = false
+		defragmap.Delete(node)
 	}()
 	if v, err := wfsdb.Get(CURRENT); err == nil && v != nil {
 		if string(v) == node {
@@ -427,7 +486,8 @@ func (t *fileEg) defrag(node string) (err sys.ERROR) {
 	if err := os.MkdirAll(filepath.Dir(newnodepath), 0777); err != nil {
 		return sys.ERR_UNDEFINED
 	}
-	if f, err := os.OpenFile(newnodepath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+	if f, err := util.OpenFile(newnodepath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+		defragfile = f
 		defer f.Close()
 		wl := new(int64)
 		if err = defragFB(mm.Bytes(), f, 0, &newnode, wl, new(int32)); err == nil {
@@ -470,6 +530,86 @@ func (t *fileEg) defrag(node string) (err sys.ERROR) {
 	return
 }
 
+func (t *fileEg) defragAndCover(node string) (err sys.ERROR) {
+	if stopstat {
+		return sys.ERR_STOPSERVICE
+	}
+	defragStat = true
+	defer func() {
+		if e := recover(); e != nil {
+			err = sys.ERR_UNDEFINED
+		}
+		defragStat = false
+		defragmap.Delete(node)
+	}()
+	if v, err := wfsdb.Get(CURRENT); err == nil && v != nil {
+		if string(v) == node {
+			return sys.ERR_DEFRAG_FORBID
+		}
+	}
+	nid, b := strToInt(node)
+	if !b {
+		return sys.ERR_NOTEXSIT
+	}
+	dataEg.openMMap(node)
+	mm, b := dataEg.mm.Get(nid)
+	if !b {
+		return sys.ERR_NOTEXSIT
+	}
+	nidbs := goutil.Int64ToBytes(int64(nid))
+	nodepath := getpathBynode(node)
+
+	newnode := fmt.Sprint(node, "_", util.CreateNodeId())
+	newnodepath := getpathBynode(newnode)
+	if err := os.MkdirAll(filepath.Dir(newnodepath), 0777); err != nil {
+		return sys.ERR_UNDEFINED
+	}
+	if f, err := util.OpenFile(newnodepath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+		defragfile = f
+		defer f.Close()
+		wl := new(int64)
+		defragmap.Store(node, newnode)
+		if err = defragFB(mm.Bytes(), f, 0, &node, wl, new(int32)); err == nil {
+			var size int64
+			if fs, _ := f.Stat(); fs != nil {
+				size = fs.Size()
+			} else {
+				size = *wl
+			}
+			if *wl == 0 && size == 0 {
+				f.Close()
+				os.Remove(newnodepath)
+				f = nil
+				return sys.ERR_UNDEFINED
+			} else {
+				offsBs := append(ENDOFFSET_, goutil.Int64ToBytes(int64(nid))...)
+				newbat := make(map[*[]byte][]byte)
+				newbat[&offsBs] = goutil.Int64ToBytes(size)
+				newbat[&nidbs] = wfsNodeBeanToBytes(&stub.WfsNodeBean{Rmsize: new(int64)})
+				wfsdb.BatchPut(newbat)
+			}
+			unmountmap.Store(nid, byte(0))
+			defer unmountmap.Delete(nid)
+			dataEg.unMmap(node)
+			dataEg.unMmap(newnode)
+			f.Close()
+			if os.Rename(newnodepath, nodepath) == nil {
+				dataEg.openMMap(node)
+			}
+		} else {
+			if fs, e := f.Stat(); e == nil {
+				if fs.Size() == 0 && *wl == 0 {
+					f.Close()
+					os.Remove(newnodepath)
+					f = nil
+				}
+			}
+			return sys.ERR_UNDEFINED
+		}
+	}
+	return
+}
+
 func getpathBynode(node string) string {
 	return sys.WFSDATA + "/wfsfile/" + node
 }
@@ -488,6 +628,7 @@ func defragFB(bs []byte, f *os.File, offset int64, node *string, wl *int64, rl *
 			size := goutil.BytesToInt32(bs[8:12])
 			if n, e := f.Write(bs[:12+size]); e == nil {
 				atomic.AddInt64(wl, int64(n))
+				catchDel(bs[:8])
 				if err = wfsdb.Put(bs[:8], wfsFileBeanToBytes(wfb)); err == nil {
 					return defragFB(bs[n:], f, offset+int64(n), node, wl, rl)
 				}
@@ -560,7 +701,7 @@ func initFileHandler(node string) (fh *fileHandler, err error) {
 			if endOffset := goutil.BytesToInt64(endoffsetBs); endOffset < sys.FileSize {
 				nodepath := getpathBynode(node)
 				if goutil.IsFileExist(nodepath) {
-					if f, err := os.OpenFile(nodepath, os.O_CREATE|os.O_RDWR, 0666); err == nil {
+					if f, err := util.OpenFile(nodepath, os.O_CREATE|os.O_RDWR, 0666); err == nil {
 						if mm, err := NewMMAP(f, endOffset); err == nil {
 							dataEg.reSetMMap(node, mm)
 							fh = &fileHandler{mm: mm, Node: node, length: endOffset}
@@ -591,7 +732,7 @@ func newFileHandler() (fh *fileHandler, err error) {
 	if err = os.MkdirAll(filepath.Dir(nodepath), 0777); err != nil {
 		return
 	}
-	if f, err = os.OpenFile(nodepath, os.O_CREATE|os.O_RDWR, 0666); err == nil {
+	if f, err = util.OpenFile(nodepath, os.O_CREATE|os.O_RDWR, 0666); err == nil {
 		if err = f.Truncate(sys.FileSize); err == nil {
 			var mm *Mmap
 			if mm, err = NewMMAP(f, 0); err == nil {
