@@ -20,6 +20,7 @@ import (
 
 	goutil "github.com/donnie4w/gofer/util"
 	"github.com/donnie4w/simplelog/logging"
+	"github.com/donnie4w/wfs/util"
 )
 
 func init() {
@@ -116,7 +117,7 @@ func praseflag() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `wfs version: wfs/`+VERSION+`
 Usage: `+exename()+`	
-	-c: configuration file  e.g: `+exename()+`  -c wfs.json
+	-c: configuration file  e.g: `+exename()+` -c wfs.json
 `)
 }
 
@@ -149,18 +150,25 @@ func praseService(s string) {
 		if Pid == "" {
 			if bs, err := goutil.ReadFile(WFSDATA + "/logs/wfs.pid"); err == nil {
 				Pid = string(bs)
+			} else {
+				fmt.Println("the wfs data directory cannot be found under the current directory.")
+				fmt.Println("add -p to specify the pid or wfs data directory.")
+				return
 			}
 		} else {
 			if _, err := strconv.Atoi(Pid); err != nil {
 				if bs, err := goutil.ReadFile(Pid + "/logs/wfs.pid"); err == nil {
 					Pid = string(bs)
+				} else {
+					fmt.Printf("wfs data directory cannot be parsed:%s", Pid)
+					return
 				}
 			}
 		}
 		sendTerminated(Pid)
 	case "export":
-		if ws, err := WsClient(extls, host, "/export", user, pwd); err == nil {
-			ws.Send([]byte{1})
+		if ws, err := WsClient(extls, Pid, host, "/export", user, pwd); err == nil {
+			defer ws.Close()
 			if out != "" {
 				if goutil.IsFileExist(out) {
 					fmt.Println("file already exists:", out)
@@ -170,9 +178,10 @@ func praseService(s string) {
 			} else {
 				out = "wfsmeta" + time.Now().Format("20060102150405")
 			}
-			if f, err := os.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_TRUNC, 0666); err == nil {
+			if f, err := util.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
 				defer f.Close()
 				start := time.Now().Unix()
+				ws.Send([]byte{1})
 				ws.Receive(func(bs []byte) bool {
 					if len(bs) == 1 {
 						switch bs[0] {
@@ -181,9 +190,11 @@ func praseService(s string) {
 						case 1:
 							f.Close()
 							os.Remove(out)
-							fmt.Println(ERR_NOPASS.WfsError().GetInfo())
-							os.Exit(0)
+							fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+							ws.Close()
+							os.Exit(1)
 						}
+						ws.Close()
 						return false
 					}
 					if _, err = f.Write(goutil.Int16ToBytes(int16(len(bs)))); err != nil {
@@ -209,7 +220,8 @@ func praseService(s string) {
 		}
 		var ws *WS
 		var err error
-		if ws, err = WsClient(extls, host, "/import", user, pwd); err == nil {
+		if ws, err = WsClient(extls, Pid, host, "/import", user, pwd); err == nil {
+			defer ws.Close()
 			start := time.Now().Unix()
 			go ws.Receive(func(bs []byte) bool {
 				if len(bs) == 1 {
@@ -217,11 +229,12 @@ func praseService(s string) {
 					case 0:
 						fmt.Println(time.Now().Format(time.DateTime)+"，import data >>", out, "(", time.Now().Unix()-start, "s)")
 					case 1:
-						fmt.Println(ERR_NOPASS.WfsError().GetInfo())
+						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
 					case 2:
 						fmt.Println("server error")
 					}
 				}
+				ws.Close()
 				os.Exit(0)
 				return false
 			})
