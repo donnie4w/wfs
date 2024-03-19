@@ -111,8 +111,11 @@ func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err err
 	t.tlAdmin.HandleWithFilter("/append/", authFilter(), appendHandler)
 	t.tlAdmin.HandleWithFilter("/delete/", authFilter(), deleteHandler)
 	t.tlAdmin.HandleWithFilter("/rename", loginFilter(), renameHandler)
-	t.tlAdmin.HandleWebSocketBindConfig("/export", exportHandler, exportConfig())
-	t.tlAdmin.HandleWebSocketBindConfig("/import", importHandler, importConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/export", exportHandler, wsConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/exportincr", exportIncrHandler, wsConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/exportfile", exportFileHandler, wsConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/import", importHandler, wsConfig())
+	t.tlAdmin.HandleWebSocketBindConfig("/importfile", importfileHandler, wsConfig())
 
 	if serverCrt != "" && serverKey != "" {
 		sys.FmtLog("webAdmin start tls [", addr, "]")
@@ -550,7 +553,7 @@ func mntHandler(hc *tlnet.HttpContext) {
 	}
 }
 
-func exportConfig() (wc *tlnet.WebsocketConfig) {
+func wsConfig() (wc *tlnet.WebsocketConfig) {
 	wc = &tlnet.WebsocketConfig{}
 	wc.OnOpen = func(hc *tlnet.HttpContext) {
 		if !authAccount(hc) {
@@ -578,16 +581,44 @@ func exportHandler(hc *tlnet.HttpContext) {
 	}
 }
 
-func importConfig() (wc *tlnet.WebsocketConfig) {
-	wc = &tlnet.WebsocketConfig{}
-	wc.OnOpen = func(hc *tlnet.HttpContext) {
-		if !authAccount(hc) {
-			hc.WS.Send([]byte{1})
-			<-time.After(2 * time.Second)
-			hc.WS.Close()
-		}
+func exportIncrHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	bs := hc.WS.Read()
+	if len(bs) == 16 {
+		start := goutil.BytesToInt64(bs[:8])
+		limit := goutil.BytesToInt64(bs[8:16])
+		sys.ExportByINCR(start, limit, func(beans *stub.SnapshotBeans) bool {
+			if beans != nil {
+				if bs, err := beans.ToBytes(); err == nil && hc.WS.Error == nil {
+					if err = hc.WS.Send(bs); err == nil {
+						return true
+					}
+				}
+			}
+			return false
+		})
+		hc.WS.Send([]byte{0})
 	}
-	return
+}
+
+func exportFileHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	bs := hc.WS.Read()
+	if len(bs) == 16 {
+		start := goutil.BytesToInt64(bs[:8])
+		limit := goutil.BytesToInt64(bs[8:16])
+		sys.ExportFile(start, limit, func(beans *stub.SnapshotFile) bool {
+			if beans != nil {
+				if bs, err := beans.ToBytes(); err == nil && hc.WS.Error == nil {
+					if err = hc.WS.Send(bs); err == nil {
+						return true
+					}
+				}
+			}
+			return false
+		})
+		hc.WS.Send([]byte{0})
+	}
 }
 
 var importcover = true
@@ -610,6 +641,32 @@ func importHandler(hc *tlnet.HttpContext) {
 
 	if sb, err := stub.BytesToSnapshotBean(bs); err == nil {
 		sys.Import(sb, importcover)
+	} else {
+		logging.Error(err)
+		hc.WS.Send([]byte{2})
+		hc.WS.Close()
+	}
+
+}
+
+func importfileHandler(hc *tlnet.HttpContext) {
+	defer util.Recover()
+	bs := hc.WS.Read()
+
+	if len(bs) == 1 {
+		switch bs[0] {
+		case 1:
+			hc.WS.Send([]byte{0})
+		case 2:
+			importcover = true
+		case 3:
+			importcover = false
+		}
+		return
+	}
+
+	if ssf, err := stub.BytesToSnapshotFile(bs); err == nil {
+		sys.ImportFile(ssf)
 	} else {
 		logging.Error(err)
 		hc.WS.Send([]byte{2})
