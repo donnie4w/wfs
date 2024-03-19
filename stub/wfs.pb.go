@@ -256,6 +256,132 @@ func (x *SnapshotBean) GetValue() []byte {
 	return nil
 }
 
+type SnapshotBeans struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id    *int64          `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Beans []*SnapshotBean `protobuf:"bytes,2,rep,name=beans" json:"beans,omitempty"`
+}
+
+func (x *SnapshotBeans) Reset() {
+	*x = SnapshotBeans{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_wfs_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SnapshotBeans) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SnapshotBeans) ProtoMessage() {}
+
+func (x *SnapshotBeans) ProtoReflect() protoreflect.Message {
+	mi := &file_wfs_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SnapshotBeans.ProtoReflect.Descriptor instead.
+func (*SnapshotBeans) Descriptor() ([]byte, []int) {
+	return file_wfs_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SnapshotBeans) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *SnapshotBeans) GetBeans() []*SnapshotBean {
+	if x != nil {
+		return x.Beans
+	}
+	return nil
+}
+
+type SnapshotFile struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id           *int64  `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Path         *string `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	Data         []byte  `protobuf:"bytes,3,opt,name=data" json:"data,omitempty"`
+	CompressType *int32  `protobuf:"varint,4,opt,name=compressType" json:"compressType,omitempty"`
+}
+
+func (x *SnapshotFile) Reset() {
+	*x = SnapshotFile{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_wfs_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SnapshotFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SnapshotFile) ProtoMessage() {}
+
+func (x *SnapshotFile) ProtoReflect() protoreflect.Message {
+	mi := &file_wfs_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SnapshotFile.ProtoReflect.Descriptor instead.
+func (*SnapshotFile) Descriptor() ([]byte, []int) {
+	return file_wfs_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SnapshotFile) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *SnapshotFile) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *SnapshotFile) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *SnapshotFile) GetCompressType() int32 {
+	if x != nil && x.CompressType != nil {
+		return *x.CompressType
+	}
+	return 0
+}
+
 var File_wfs_proto protoreflect.FileDescriptor
 
 var file_wfs_proto_rawDesc = []byte{
@@ -280,7 +406,19 @@ var file_wfs_proto_rawDesc = []byte{
 	0x70, 0x73, 0x68, 0x6f, 0x74, 0x42, 0x65, 0x61, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76,
 	0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x42, 0x08, 0x5a, 0x06, 0x2e, 0x2f, 0x73, 0x74, 0x75, 0x62,
+	0x65, 0x22, 0x49, 0x0a, 0x0d, 0x53, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x42, 0x65, 0x61,
+	0x6e, 0x73, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02,
+	0x69, 0x64, 0x12, 0x28, 0x0a, 0x05, 0x62, 0x65, 0x61, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x12, 0x2e, 0x73, 0x74, 0x75, 0x62, 0x2e, 0x53, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f,
+	0x74, 0x42, 0x65, 0x61, 0x6e, 0x52, 0x05, 0x62, 0x65, 0x61, 0x6e, 0x73, 0x22, 0x6a, 0x0a, 0x0c,
+	0x53, 0x6e, 0x61, 0x70, 0x73, 0x68, 0x6f, 0x74, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x02, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04,
+	0x70, 0x61, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68,
+	0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04,
+	0x64, 0x61, 0x74, 0x61, 0x12, 0x22, 0x0a, 0x0c, 0x63, 0x6f, 0x6d, 0x70, 0x72, 0x65, 0x73, 0x73,
+	0x54, 0x79, 0x70, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0c, 0x63, 0x6f, 0x6d, 0x70,
+	0x72, 0x65, 0x73, 0x73, 0x54, 0x79, 0x70, 0x65, 0x42, 0x08, 0x5a, 0x06, 0x2e, 0x2f, 0x73, 0x74,
+	0x75, 0x62,
 }
 
 var (
@@ -295,19 +433,22 @@ func file_wfs_proto_rawDescGZIP() []byte {
 	return file_wfs_proto_rawDescData
 }
 
-var file_wfs_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_wfs_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_wfs_proto_goTypes = []interface{}{
-	(*WfsNodeBean)(nil),  // 0: stub.WfsNodeBean
-	(*WfsFileBean)(nil),  // 1: stub.WfsFileBean
-	(*WfsPathBean)(nil),  // 2: stub.WfsPathBean
-	(*SnapshotBean)(nil), // 3: stub.SnapshotBean
+	(*WfsNodeBean)(nil),   // 0: stub.WfsNodeBean
+	(*WfsFileBean)(nil),   // 1: stub.WfsFileBean
+	(*WfsPathBean)(nil),   // 2: stub.WfsPathBean
+	(*SnapshotBean)(nil),  // 3: stub.SnapshotBean
+	(*SnapshotBeans)(nil), // 4: stub.SnapshotBeans
+	(*SnapshotFile)(nil),  // 5: stub.SnapshotFile
 }
 var file_wfs_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3, // 0: stub.SnapshotBeans.beans:type_name -> stub.SnapshotBean
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_wfs_proto_init() }
@@ -364,6 +505,30 @@ func file_wfs_proto_init() {
 				return nil
 			}
 		}
+		file_wfs_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SnapshotBeans); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_wfs_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SnapshotFile); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -371,7 +536,7 @@ func file_wfs_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_wfs_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
