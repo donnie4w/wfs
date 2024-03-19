@@ -11,7 +11,7 @@ package main
 import (
 	_ "github.com/donnie4w/wfs/keystore"
 	_ "github.com/donnie4w/wfs/level1"
-	_ "github.com/donnie4w/wfs/stroge"
+	_ "github.com/donnie4w/wfs/stor"
 	. "github.com/donnie4w/wfs/sys"
 	_ "github.com/donnie4w/wfs/tc"
 )
