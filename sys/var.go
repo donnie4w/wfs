@@ -15,7 +15,7 @@ import (
 	"github.com/donnie4w/gofer/hashmap"
 )
 
-const VERSION = "1.0.2"
+const VERSION = "1.0.3"
 
 const (
 	KB = 1 << 10
@@ -59,6 +59,7 @@ var (
 	SocketTimeout  = 10 * time.Second
 	OpenSSL        = &openssl{}
 	Memlimit       = int64(1 << 10)
+	FileHash       = 0
 	defaultConf    = ""
 	host           = ""
 	user           = ""
@@ -66,4 +67,12 @@ var (
 	out            = ""
 	cover          = false
 	extls          = false
+	start          = int64(0)
+	limit          = int64(0)
+	efile          = false
+	filegz         = false
+	metaType       = byte(1)
+	fileType       = byte(2)
+	useOriginal    = byte(0)
+	useZlib        = byte(1)
 )
