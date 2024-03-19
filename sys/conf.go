@@ -18,8 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/donnie4w/gofer/compress"
 	goutil "github.com/donnie4w/gofer/util"
 	"github.com/donnie4w/simplelog/logging"
+	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/util"
 )
 
@@ -42,6 +44,11 @@ func praseflag() {
 	flag.StringVar(&out, "o", "", "path of metadata file")
 	flag.BoolVar(&cover, "cover", false, "whether to overwrite the same path data")
 	flag.BoolVar(&extls, "tls", false, "use tls")
+	flag.Int64Var(&start, "start", 0, "export start")
+	flag.Int64Var(&limit, "limit", 0, "export limit")
+	flag.BoolVar(&efile, "file", false, "wfs file data")
+	flag.BoolVar(&filegz, "gz", false, "exported compressed data")
+
 	flag.Parse()
 	parsec()
 
@@ -94,6 +101,10 @@ func praseflag() {
 
 	if Conf.MaxPixel > 0 {
 		MaxPixel = Conf.MaxPixel
+	}
+
+	if Conf.FileHash != nil {
+		FileHash = *Conf.FileHash
 	}
 
 	if Service != "" {
@@ -167,120 +178,377 @@ func praseService(s string) {
 		}
 		sendTerminated(Pid)
 	case "export":
-		if ws, err := WsClient(extls, Pid, host, "/export", user, pwd); err == nil {
-			defer ws.Close()
-			if out != "" {
-				if goutil.IsFileExist(out) {
-					fmt.Println("file already exists:", out)
-					return
-				}
-				os.MkdirAll(filepath.Dir(out), 0777)
-			} else {
-				out = "wfsmeta" + time.Now().Format("20060102150405")
-			}
-			if f, err := util.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
-				defer f.Close()
-				start := time.Now().Unix()
-				ws.Send([]byte{1})
-				ws.Receive(func(bs []byte) bool {
-					if len(bs) == 1 {
-						switch bs[0] {
-						case 0:
-							fmt.Println(time.Now().Format(time.DateTime)+"，export data >>", out, "(", time.Now().Unix()-start, "s)")
-						case 1:
-							f.Close()
-							os.Remove(out)
-							fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
-							ws.Close()
-							os.Exit(1)
-						}
-						ws.Close()
-						return false
-					}
-					if _, err = f.Write(goutil.Int16ToBytes(int16(len(bs)))); err != nil {
-						fmt.Println(err.Error())
-						return false
-					}
-					if _, err = f.Write(bs); err != nil {
-						fmt.Println(err.Error())
-						return false
-					}
-					return true
-				})
-			} else {
-				fmt.Println(err.Error())
-			}
+		if efile {
+			exportfile()
 		} else {
-			fmt.Println("export error:", err.Error())
+			if start > 0 || limit > 0 {
+				exportincr()
+			} else {
+				export()
+			}
 		}
 	case "import":
-		if !goutil.IsFileExist(out) {
-			fmt.Println("file does not exist:", out)
-			return
-		}
-		var ws *WS
-		var err error
-		if ws, err = WsClient(extls, Pid, host, "/import", user, pwd); err == nil {
-			defer ws.Close()
-			start := time.Now().Unix()
-			go ws.Receive(func(bs []byte) bool {
-				if len(bs) == 1 {
-					switch bs[0] {
-					case 0:
-						fmt.Println(time.Now().Format(time.DateTime)+"，import data >>", out, "(", time.Now().Unix()-start, "s)")
-					case 1:
-						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
-					case 2:
-						fmt.Println("server error")
-					}
-				}
-				ws.Close()
-				os.Exit(0)
-				return false
-			})
-			var c byte = 2
-			if !cover {
-				c = 3
-			}
-			if err = ws.Send([]byte{c}); err == nil {
-				offset, n := 0, 0
-				var f *os.File
-				if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
-					defer f.Close()
-					fl, _ := f.Stat()
-					for offset < int(fl.Size()) {
-						head := make([]byte, 2)
-						if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 2 {
-							break
-						}
-						length := goutil.BytesToInt16(head)
-						body := make([]byte, length)
-						if n, err = f.ReadAt(body, int64(offset+2)); err != nil || n != int(length) {
-							break
-						}
-						if err = ws.Send(body); err != nil {
-							break
-						}
-						offset += 2 + int(length)
-					}
-					if err != nil {
-						goto ERR
-					}
-					err = ws.Send([]byte{1})
-					<-time.After(5 * time.Second)
-				}
-			}
-		ERR:
-			if err != nil {
-				fmt.Println("import error:", err.Error())
-			}
+		if efile {
+			importfile()
 		} else {
-			fmt.Println("import error:", err.Error())
+			importmeta()
 		}
-
 	default:
 		fmt.Printf("could not find service with: %s\n", s)
 		os.Exit(1)
+	}
+}
+
+func importmeta() {
+	if !goutil.IsFileExist(out) {
+		fmt.Println("file does not exist:", out)
+		return
+	}
+	var ws *WS
+	var err error
+	if ws, err = WsClient(extls, Pid, host, "/import", user, pwd); err == nil {
+		defer ws.Close()
+		starttime := time.Now().UnixMilli()
+		go ws.Receive(func(bs []byte) bool {
+			if len(bs) == 1 {
+				switch bs[0] {
+				case 0:
+					fmt.Println(time.Now().Format(time.DateTime)+"，import data >>", out, "(", time.Now().UnixMilli()-starttime, "s)")
+				case 1:
+					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+				case 2:
+					fmt.Println("data error and service disconnected")
+				}
+			}
+			ws.Close()
+			os.Exit(0)
+			return false
+		})
+		var c byte = 2
+		if !cover {
+			c = 3
+		}
+		if err = ws.Send([]byte{c}); err == nil {
+			offset, n := 2, 0
+			var f *os.File
+			if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
+				defer f.Close()
+				fl, _ := f.Stat()
+
+				h := make([]byte, 2)
+				if n, err := f.Read(h); err == nil && n == 2 {
+					if h[0] != metaType {
+						fmt.Println("data error")
+						return
+					}
+				}
+
+				for offset < int(fl.Size()) {
+					head := make([]byte, 2)
+					if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 2 {
+						break
+					}
+					length := goutil.BytesToInt16(head)
+					body := make([]byte, length)
+					if n, err = f.ReadAt(body, int64(offset+2)); err != nil || n != int(length) {
+						break
+					}
+					if err = ws.Send(body); err != nil {
+						break
+					}
+					offset += 2 + int(length)
+				}
+				if err != nil {
+					goto ERR
+				}
+				err = ws.Send([]byte{1})
+				<-time.After(5 * time.Second)
+			}
+		}
+	ERR:
+		if err != nil {
+			fmt.Println("import error:", err.Error())
+		}
+	} else {
+		fmt.Println("import error:", err.Error())
+	}
+}
+
+func importfile() {
+	if !goutil.IsFileExist(out) {
+		fmt.Println("file does not exist:", out)
+		return
+	}
+	var ws *WS
+	var err error
+	if ws, err = WsClient(extls, Pid, host, "/importfile", user, pwd); err == nil {
+		defer ws.Close()
+		starttime := time.Now().UnixMilli()
+		go ws.Receive(func(bs []byte) bool {
+			if len(bs) == 1 {
+				switch bs[0] {
+				case 0:
+					fmt.Println(time.Now().Format(time.DateTime)+"，import file >>", out, "(", time.Now().UnixMilli()-starttime, "s)")
+				case 1:
+					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+				case 2:
+					fmt.Println("data error and service disconnected")
+				}
+			}
+			ws.Close()
+			os.Exit(0)
+			return false
+		})
+		var c byte = 2
+		if !cover {
+			c = 3
+		}
+		if err = ws.Send([]byte{c}); err == nil {
+			offset, n := 2, 0
+			var f *os.File
+			if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
+				defer f.Close()
+				fl, _ := f.Stat()
+
+				h := make([]byte, 2)
+				if n, err := f.Read(h); err == nil && n == 2 {
+					if h[0] != fileType {
+						fmt.Println("data error")
+						return
+					}
+				}
+
+				gz := h[1] == useZlib
+
+				for offset < int(fl.Size()) {
+					head := make([]byte, 4)
+					if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 4 {
+						break
+					}
+					length := goutil.BytesToInt32(head)
+					body := make([]byte, length)
+					if n, err = f.ReadAt(body, int64(offset+4)); err != nil || n != int(length) {
+						break
+					}
+					if gz {
+						if b, err := compress.UnZlib(body); err == nil {
+							body = b
+						}
+					}
+					if err = ws.Send(body); err != nil {
+						break
+					}
+					offset += 4 + int(length)
+				}
+				if err != nil {
+					goto ERR
+				}
+				err = ws.Send([]byte{1})
+				<-time.After(5 * time.Second)
+			}
+		}
+	ERR:
+		if err != nil {
+			fmt.Println("import error:", err.Error())
+		}
+	} else {
+		fmt.Println("import error:", err.Error())
+	}
+}
+
+func export() {
+	if ws, err := WsClient(extls, Pid, host, "/export", user, pwd); err == nil {
+		defer ws.Close()
+		if out != "" {
+			if goutil.IsFileExist(out) {
+				fmt.Println("file already exists:", out)
+				return
+			}
+			os.MkdirAll(filepath.Dir(out), 0777)
+		} else {
+			out = "wfsmeta" + time.Now().Format("20060102150405")
+		}
+		if f, err := util.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+			defer f.Close()
+			starttime := time.Now().UnixMilli()
+			ws.Send([]byte{1})
+			f.Write([]byte{metaType, useOriginal})
+			ws.Receive(func(bs []byte) bool {
+				if len(bs) == 1 {
+					switch bs[0] {
+					case 0:
+						fmt.Println(time.Now().Format(time.DateTime)+"，export meta data >>", out, "(", time.Now().UnixMilli()-starttime, "ms)")
+					case 1:
+						f.Close()
+						os.Remove(out)
+						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						ws.Close()
+						os.Exit(1)
+					}
+					ws.Close()
+					return false
+				}
+				if _, err = f.Write(goutil.Int16ToBytes(int16(len(bs)))); err != nil {
+					fmt.Println(err.Error())
+					return false
+				}
+				if _, err = f.Write(bs); err != nil {
+					fmt.Println(err.Error())
+					return false
+				}
+				return true
+			})
+		} else {
+			fmt.Println(err.Error())
+		}
+	} else {
+		fmt.Println("export error:", err.Error())
+	}
+}
+
+func exportincr() {
+	if start <= 0 || limit <= 0 {
+		fmt.Println("error parameter:start and limit must be assigned at the same time or not at the same time")
+		return
+	}
+	if ws, err := WsClient(extls, Pid, host, "/exportincr", user, pwd); err == nil {
+		defer ws.Close()
+		if out != "" {
+			if goutil.IsFileExist(out) {
+				fmt.Println("file already exists:", out)
+				return
+			}
+			os.MkdirAll(filepath.Dir(out), 0777)
+		} else {
+			out = "wfsmeta" + time.Now().Format("20060102150405")
+		}
+		startflag, endflag := int64(0), int64(0)
+		if f, err := util.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+			defer f.Close()
+			starttime := time.Now().UnixMilli()
+			ws.Send(append(goutil.Int64ToBytes(start), goutil.Int64ToBytes(limit)...))
+			f.Write([]byte{metaType, useOriginal})
+			ws.Receive(func(bs []byte) bool {
+				if len(bs) == 1 {
+					switch bs[0] {
+					case 0:
+						f.Close()
+						newout := fmt.Sprint(out, "_", start, "_", endflag)
+						os.Rename(out, newout)
+						fmt.Println(time.Now().Format(time.DateTime)+"，export meta data >>", newout, "(", time.Now().UnixMilli()-starttime, "ms)")
+					case 1:
+						f.Close()
+						os.Remove(out)
+						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						ws.Close()
+						os.Exit(1)
+					}
+					ws.Close()
+					return false
+				}
+				if ssbs, err := stub.BytesToSnapshotBeans(bs); err == nil {
+					if startflag <= 0 {
+						startflag = ssbs.GetId()
+					}
+					endflag = ssbs.GetId()
+					for _, bean := range ssbs.Beans {
+						if b, e := bean.ToBytes(); e == nil {
+							if _, err = f.Write(goutil.Int16ToBytes(int16(len(b)))); err != nil {
+								fmt.Println(err.Error())
+								return false
+							}
+							if _, err = f.Write(b); err != nil {
+								fmt.Println(err.Error())
+								return false
+							}
+
+						}
+					}
+
+				}
+				return true
+			})
+		} else {
+			fmt.Println(err.Error())
+		}
+	} else {
+		fmt.Println("export error:", err.Error())
+	}
+}
+
+func exportfile() {
+	if start <= 0 || limit <= 0 {
+		fmt.Println("to export the file, you need to assign start and limit values. e.g. -start 1 -limit 10")
+		return
+	}
+	if ws, err := WsClient(extls, Pid, host, "/exportfile", user, pwd); err == nil {
+		defer ws.Close()
+		if out != "" {
+			if goutil.IsFileExist(out) {
+				fmt.Println("file already exists:", out)
+				return
+			}
+			os.MkdirAll(filepath.Dir(out), 0777)
+		} else {
+			out = "wfsfile" + time.Now().Format("20060102150405")
+		}
+		startflag, endflag := int64(0), int64(0)
+		if f, err := util.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666); err == nil {
+			defer f.Close()
+			starttime := time.Now().UnixMilli()
+			ws.Send(append(goutil.Int64ToBytes(start), goutil.Int64ToBytes(limit)...))
+			f.Write([]byte{fileType})
+			if filegz {
+				f.Write([]byte{useZlib})
+			} else {
+				f.Write([]byte{useOriginal})
+			}
+			ws.Receive(func(bs []byte) bool {
+				if len(bs) == 1 {
+					switch bs[0] {
+					case 0:
+						f.Close()
+						newout := fmt.Sprint(out, "_", start, "_", endflag)
+						os.Rename(out, newout)
+						fmt.Println(time.Now().Format(time.DateTime)+"，export file data>>", newout, "(", time.Now().UnixMilli()-starttime, "ms)")
+					case 1:
+						f.Close()
+						os.Remove(out)
+						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						ws.Close()
+						os.Exit(1)
+					}
+					ws.Close()
+					return false
+				}
+				if ssbs, err := stub.BytesToSnapshotFile(bs); err == nil {
+					if startflag <= 0 {
+						startflag = ssbs.GetId()
+					}
+					endflag = ssbs.GetId()
+					if bs, err := ssbs.ToBytes(); err == nil {
+						if filegz {
+							if b, err := compress.Zlib(bs); err == nil {
+								bs = b
+							}
+						}
+						if _, err = f.Write(goutil.Int32ToBytes(int32(len(bs)))); err != nil {
+							fmt.Println(err.Error())
+							return false
+						}
+						if _, err = f.Write(bs); err != nil {
+							fmt.Println(err.Error())
+							return false
+						}
+					}
+				}
+				return true
+			})
+		} else {
+			fmt.Println(err.Error())
+		}
+	} else {
+		fmt.Println("export error:", err.Error())
 	}
 }
 
