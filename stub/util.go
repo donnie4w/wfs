@@ -29,3 +29,23 @@ func BytesToSnapshotBean(bs []byte) (_r *SnapshotBean, err error) {
 	err = proto.Unmarshal(bs, _r)
 	return
 }
+
+func (t *SnapshotBeans) ToBytes() ([]byte, error) {
+	return proto.Marshal(t)
+}
+
+func BytesToSnapshotBeans(bs []byte) (_r *SnapshotBeans, err error) {
+	_r = new(SnapshotBeans)
+	err = proto.Unmarshal(bs, _r)
+	return
+}
+
+func (t *SnapshotFile) ToBytes() ([]byte, error) {
+	return proto.Marshal(t)
+}
+
+func BytesToSnapshotFile(bs []byte) (_r *SnapshotFile, err error) {
+	_r = new(SnapshotFile)
+	err = proto.Unmarshal(bs, _r)
+	return
+}
