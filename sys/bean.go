@@ -35,6 +35,7 @@ type ConfBean struct {
 	MaxPixel           int     `json:"maxpixel"`
 	Resample           int8    `json:"resample"`
 	ImgViewingRevProxy string  `json:"imgViewingRevProxy"`
+	FileHash           *int    `json:"filehash"`
 }
 
 type PathBean struct {
