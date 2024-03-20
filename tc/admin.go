@@ -58,9 +58,7 @@ func (t *adminService) Serve() (err error) {
 		<-time.After(500 * time.Millisecond)
 	}
 	t.addSignalEvent()
-	if sys.Conf.Init {
-		initAccount()
-	}
+	initAccount()
 	initStore()
 	if strings.TrimSpace(sys.WEBADDR) != "" {
 		err = t._serve(strings.TrimSpace(sys.WEBADDR), sys.Conf.Admin_Ssl_crt, sys.Conf.Admin_Ssl_crt_key)
@@ -380,7 +378,9 @@ func loginHtml(hc *tlnet.HttpContext) {
 }
 
 func initAccount() {
-	if len(Admin.AdminList()) == 0 {
+	if sys.Conf.AdminUserName != nil && sys.Conf.AdminPassword != nil {
+		Admin.PutAdmin(*sys.Conf.AdminUserName, *sys.Conf.AdminPassword, 1)
+	} else if sys.Conf.Init && len(Admin.AdminList()) == 0 {
 		Admin.PutAdmin(sys.DefaultAccount[0], sys.DefaultAccount[1], 1)
 	}
 }
