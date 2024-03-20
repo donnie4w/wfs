@@ -14,8 +14,8 @@ type Server interface {
 
 type ConfBean struct {
 	FileSize           int64   `json:"filesize"`
-	Opaddr             string  `json:"opaddr"`
-	WebAddr            string  `json:"webaddr"`
+	Opaddr             *string `json:"opaddr"`
+	WebAddr            *string `json:"webaddr"`
 	Listen             int     `json:"listen"`
 	Admin_Ssl_crt      string  `json:"admin.ssl_certificate"`
 	Admin_Ssl_crt_key  string  `json:"admin.ssl_certificate_key"`
@@ -36,6 +36,8 @@ type ConfBean struct {
 	Resample           int8    `json:"resample"`
 	ImgViewingRevProxy string  `json:"imgViewingRevProxy"`
 	FileHash           *int    `json:"filehash"`
+	AdminUserName      *string `json:"adminusername"`
+	AdminPassword      *string `json:"adminpassword"`
 }
 
 type PathBean struct {
