@@ -55,19 +55,21 @@ func praseflag() {
 	if Conf.Mode != nil {
 		Mode = *Conf.Mode
 	}
-
 	if Conf.Sync != nil {
 		SYNC = *Conf.Sync
 	}
-	if Conf.WebAddr != "" {
-		WEBADDR = Conf.WebAddr
+	if Conf.WebAddr != nil {
+		WEBADDR = *Conf.WebAddr
 	}
 	if Conf.Listen > 0 {
 		LISTEN = Conf.Listen
+	} else if Conf.Listen < 0 {
+		LISTEN = 0
 	}
-	if Conf.Opaddr != "" {
-		OPADDR = Conf.Opaddr
+	if Conf.Opaddr != nil {
+		OPADDR = *Conf.Opaddr
 	}
+
 	if Conf.DataMaxsize > 0 {
 		DataMaxsize = Conf.DataMaxsize * KB
 	}
@@ -213,7 +215,7 @@ func importmeta() {
 			if len(bs) == 1 {
 				switch bs[0] {
 				case 0:
-					fmt.Println(time.Now().Format(time.DateTime)+"，import data >>", out, "(", time.Now().UnixMilli()-starttime, "s)")
+					fmt.Println(time.Now().Format(time.DateTime)+"，import meta data >>", out, "(", time.Now().UnixMilli()-starttime, "ms)")
 				case 1:
 					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
 				case 2:
@@ -234,15 +236,13 @@ func importmeta() {
 			if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
 				defer f.Close()
 				fl, _ := f.Stat()
-
 				h := make([]byte, 2)
 				if n, err := f.Read(h); err == nil && n == 2 {
 					if h[0] != metaType {
-						fmt.Println("data error")
+						fmt.Println("the metadata format is incorrect")
 						return
 					}
 				}
-
 				for offset < int(fl.Size()) {
 					head := make([]byte, 2)
 					if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 2 {
@@ -288,7 +288,7 @@ func importfile() {
 			if len(bs) == 1 {
 				switch bs[0] {
 				case 0:
-					fmt.Println(time.Now().Format(time.DateTime)+"，import file >>", out, "(", time.Now().UnixMilli()-starttime, "s)")
+					fmt.Println(time.Now().Format(time.DateTime)+"，import file >>", out, "(", time.Now().UnixMilli()-starttime, "ms)")
 				case 1:
 					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
 				case 2:
@@ -309,17 +309,14 @@ func importfile() {
 			if f, err = os.OpenFile(out, os.O_RDONLY, 0666); err == nil {
 				defer f.Close()
 				fl, _ := f.Stat()
-
 				h := make([]byte, 2)
 				if n, err := f.Read(h); err == nil && n == 2 {
 					if h[0] != fileType {
-						fmt.Println("data error")
+						fmt.Println("the file data format is incorrect")
 						return
 					}
 				}
-
 				gz := h[1] == useZlib
-
 				for offset < int(fl.Size()) {
 					head := make([]byte, 4)
 					if n, err = f.ReadAt(head, int64(offset)); err != nil || n != 4 {
