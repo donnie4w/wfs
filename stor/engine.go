@@ -340,11 +340,7 @@ func (t *fileEg) getData(path string) (_r []byte) {
 		return nil
 	}
 	defer util.Recover()
-	// fid := goutil.CRC64([]byte(path))
-	// fidbs := goutil.Int64ToBytes(int64(fid))
-
 	fidbs := fingerprint([]byte(path))
-
 	if v, err := catchGet(fidbs); err == nil {
 		if v, err = catchGet(v); err == nil {
 			wfb := bytesToWfsFileBean(v)
@@ -361,11 +357,7 @@ func (t *fileEg) delData(path string) (_r sys.ERROR) {
 		return sys.ERR_STOPSERVICE
 	}
 	defer util.Recover()
-	// fid := goutil.CRC64([]byte(path))
-	// fidbs := goutil.Int64ToBytes(int64(fid))
-
 	fidbs := fingerprint([]byte(path))
-
 	batchmap := make(map[*[]byte][]byte, 0)
 	dels := [][]byte{fidbs}
 	if oldBidBs, err := wfsdb.Get(fidbs); err == nil && oldBidBs != nil {
@@ -414,13 +406,9 @@ func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
 	}
 	am := make(map[*[]byte][]byte, 0)
 	dm := make([][]byte, 0)
-	// fid := goutil.CRC64([]byte(path))
-	// fidbs := goutil.Int64ToBytes(int64(fid))
 
 	fidbs := fingerprint([]byte(path))
 	dm = append(dm, fidbs)
-	// newfid := goutil.CRC64([]byte(newpath))
-	// newfidbs := goutil.Int64ToBytes(int64(newfid))
 
 	newfidbs := fingerprint([]byte(newpath))
 
@@ -772,16 +760,11 @@ func newFileHandler() (fh *fileHandler, err error) {
 
 func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf bool, _r sys.ERROR) {
 	if path != "" && bs != nil && len(bs) > 0 {
-		// fid := goutil.CRC64([]byte(path))
-		// fidBs := goutil.Int64ToBytes(int64(fid))
 		fidBs := fingerprint([]byte(path))
 
 		lockid := goutil.CRC64(append(APPENDLOCK_, fidBs...))
 		numlock.Lock(int64(lockid))
 		defer numlock.Unlock(int64(lockid))
-
-		// bId := goutil.CRC64(bs)
-		// bidBs := goutil.Int64ToBytes(int64(bId))
 
 		bidBs := fingerprint(bs)
 
@@ -904,7 +887,6 @@ func exportByIncr(start, limit int64, streamfunc func(snaps *stub.SnapshotBeans)
 				snaps.Beans = append(snaps.Beans, &stub.SnapshotBean{Key: seqbs, Value: wpbbs})
 				wpbtb := bytesToWfsPathBean(wpbbs)
 				path := *wpbtb.Path
-				// fidbs := goutil.Int64ToBytes(int64(goutil.CRC64([]byte(path))))
 				fidbs := fingerprint([]byte(path))
 				if bidBs, err := wfsdb.Get(fidbs); err == nil {
 					snaps.Beans = append(snaps.Beans, &stub.SnapshotBean{Key: fidbs, Value: bidBs})
