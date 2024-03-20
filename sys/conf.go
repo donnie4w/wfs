@@ -217,7 +217,7 @@ func importmeta() {
 				case 0:
 					fmt.Println(time.Now().Format(time.DateTime)+"，import meta data >>", out, "(", time.Now().UnixMilli()-starttime, "ms)")
 				case 1:
-					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+					fmt.Printf("verification fail,user:%s or pwd:%s is incorrect\n", user, pwd)
 				case 2:
 					fmt.Println("data error and service disconnected")
 				}
@@ -290,7 +290,7 @@ func importfile() {
 				case 0:
 					fmt.Println(time.Now().Format(time.DateTime)+"，import file >>", out, "(", time.Now().UnixMilli()-starttime, "ms)")
 				case 1:
-					fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+					fmt.Printf("verification fail,user:%s or pwd:%s is incorrect\n", user, pwd)
 				case 2:
 					fmt.Println("data error and service disconnected")
 				}
@@ -378,7 +378,7 @@ func export() {
 					case 1:
 						f.Close()
 						os.Remove(out)
-						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						fmt.Printf("verification fail,user:%s or pwd:%s is incorrect\n", user, pwd)
 						ws.Close()
 						os.Exit(1)
 					}
@@ -436,7 +436,7 @@ func exportincr() {
 					case 1:
 						f.Close()
 						os.Remove(out)
-						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						fmt.Printf("verification fail,user:%s or pwd:%s is incorrect\n", user, pwd)
 						ws.Close()
 						os.Exit(1)
 					}
@@ -511,7 +511,7 @@ func exportfile() {
 					case 1:
 						f.Close()
 						os.Remove(out)
-						fmt.Printf("verification fail,username:%s or password:%s is incorrect\n", user, pwd)
+						fmt.Printf("verification fail,user:%s or pwd:%s is incorrect\n", user, pwd)
 						ws.Close()
 						os.Exit(1)
 					}
