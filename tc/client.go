@@ -62,6 +62,9 @@ func (t *clientService) _serve(addr string, serverCrt, serverKey string) (err er
 		sys.Wfs.Close()
 		os.Exit(1)
 	}
+	if t.isClose {
+		err = nil
+	}
 	return
 }
 
