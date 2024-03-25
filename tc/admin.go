@@ -128,6 +128,9 @@ func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err err
 		sys.Wfs.Close()
 		os.Exit(1)
 	}
+	if t.isClose {
+		err = nil
+	}
 	return
 }
 
