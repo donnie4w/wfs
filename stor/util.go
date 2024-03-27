@@ -10,6 +10,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"runtime"
 
 	"github.com/donnie4w/gofer/compress"
 	goutil "github.com/donnie4w/gofer/util"
@@ -126,7 +127,34 @@ func fileoffset() int {
 	}
 }
 
+func fingerprintLen() int {
+	switch sys.FileHash {
+	case 1:
+		return 16
+	case 2:
+		return 20
+	case 3:
+		return 32
+	default:
+		return 8
+	}
+}
+
 var catch *lru.Cache[string, []byte]
+
+func initCatch() (err error) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	freemem := uint64(sys.Memlimit*sys.MB) - m.TotalAlloc
+	length := freemem / 128
+	if length > 1<<20 {
+		length = 1 << 20
+	} else if length < 1<<10 {
+		length = 1 << 10
+	}
+	catch, err = lru.New[string, []byte](int(length))
+	return
+}
 
 func catchGet(key []byte) (bs []byte, err error) {
 	if catch != nil {
