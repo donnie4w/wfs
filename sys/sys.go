@@ -19,7 +19,11 @@ func (s *server) Serve() error {
 	KeyStoreInit(WFSDATA)
 	writePid(WFSDATA)
 	Serve.BackForEach(func(_ int, s Server) bool {
-		go s.Serve()
+		go func() {
+			if err := s.Serve(); err != nil {
+				FmtLog(err)
+			}
+		}()
 		<-time.After(time.Millisecond << 9)
 		return true
 	})
