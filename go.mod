@@ -3,8 +3,8 @@ module github.com/donnie4w/wfs
 go 1.22.0
 
 require (
-	github.com/donnie4w/gofer v0.0.0-20240311114551-d52fdfcd46a9
-	github.com/donnie4w/gothrift v0.0.1
+	github.com/donnie4w/gofer v0.0.0-20240319022744-3a9079ccc237
+	github.com/donnie4w/gothrift v0.0.2
 	github.com/donnie4w/simplelog v0.0.1
 	github.com/donnie4w/tlnet v0.0.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/apache/thrift v0.19.0 // indirect
+	github.com/apache/thrift v0.20.0 // indirect
 	github.com/chai2010/webp v1.1.1 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/donnie4w/ico v0.0.1 // indirect
@@ -29,7 +29,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
