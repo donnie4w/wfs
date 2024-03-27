@@ -15,7 +15,7 @@ import (
 	"github.com/donnie4w/gofer/hashmap"
 )
 
-const VERSION = "1.0.3"
+const VERSION = "1.0.4"
 
 const (
 	KB = 1 << 10
@@ -50,12 +50,13 @@ var (
 	OPADDR         = fmt.Sprint(":", 5<<10+2)
 	LISTEN         = 4<<10 + 2
 	SYNC           = false
+	Restrict       = 95
 	DBBUFFER       = 1 << 6 * MB
 	InaccurateTime = time.Now().UnixNano()
 	ConnectTimeout = 10 * time.Second
 	WaitTimeout    = 10 * time.Second
-	FileSize       = int64(500 * MB)
-	DataMaxsize    = int64(100 * MB)
+	FileSize       = int64(1000 * MB)
+	DataMaxsize    = FileSize / 5
 	SocketTimeout  = 10 * time.Second
 	OpenSSL        = &openssl{}
 	Memlimit       = int64(1 << 10)
