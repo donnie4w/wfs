@@ -395,7 +395,10 @@ func initStore() {
 func readHandler(hc *tlnet.HttpContext) {
 	defer util.Recover()
 	uri := hc.Request().RequestURI
-	if bs, err := getData(uri[2:]); err == nil {
+	if bs, cy, err := getData(uri[2:]); err == nil {
+		if cy != "" {
+			hc.Writer().Header().Add("Content-Type", cy)
+		}
 		hc.ResponseBytes(0, bs)
 	} else {
 		hc.Writer().WriteHeader(404)
