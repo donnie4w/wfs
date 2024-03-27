@@ -41,7 +41,7 @@ func praseflag() {
 	flag.StringVar(&host, "host", "", "host")
 	flag.StringVar(&user, "user", "", "user")
 	flag.StringVar(&pwd, "pwd", "", "pwd")
-	flag.StringVar(&out, "o", "", "path of metadata file")
+	flag.StringVar(&out, "o", "", "path of metadata or filedata")
 	flag.BoolVar(&cover, "cover", false, "whether to overwrite the same path data")
 	flag.BoolVar(&extls, "tls", false, "use tls")
 	flag.Int64Var(&start, "start", 0, "export start")
@@ -72,17 +72,30 @@ func praseflag() {
 
 	if Conf.DataMaxsize > 0 {
 		DataMaxsize = Conf.DataMaxsize * KB
+	} else if os_DataMaxsize := os.Getenv("WFS_DATAMAXSIZE"); os_DataMaxsize != "" {
+		if i, err := strconv.ParseInt(os_DataMaxsize, 10, 64); err == nil {
+			DataMaxsize = i * KB
+		}
 	}
 
 	if Conf.Memlimit > 0 {
 		Memlimit = Conf.Memlimit
+	} else if os_Memlimit := os.Getenv("WFS_MEMLIMIT"); os_Memlimit != "" {
+		if i, err := strconv.ParseInt(os_Memlimit, 10, 64); err == nil {
+			Memlimit = i
+		}
 	}
 
 	if Conf.FileSize > 0 {
 		FileSize = Conf.FileSize * MB
-		if DataMaxsize > FileSize {
-			DataMaxsize = FileSize
+	} else if os_FileSize := os.Getenv("WFS_FILESIZE"); os_FileSize != "" {
+		if i, err := strconv.ParseInt(os_FileSize, 10, 64); err == nil {
+			FileSize = i * MB
 		}
+	}
+
+	if DataMaxsize > FileSize {
+		DataMaxsize = FileSize
 	}
 
 	if Conf.WfsData != nil {
@@ -111,6 +124,10 @@ func praseflag() {
 
 	if Service != "" {
 		praseService(Service)
+	}
+
+	if Conf.Restrict != nil {
+		Restrict = *Conf.Restrict
 	}
 
 	flag.Usage = usage
