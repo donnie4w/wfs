@@ -38,6 +38,7 @@ type ConfBean struct {
 	FileHash           *int    `json:"filehash"`
 	AdminUserName      *string `json:"adminusername"`
 	AdminPassword      *string `json:"adminpassword"`
+	Restrict           *int    `json:"restrict"`
 }
 
 type PathBean struct {
