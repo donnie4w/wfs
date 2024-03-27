@@ -10,15 +10,11 @@ package util
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/gob"
 	"errors"
-	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"runtime/debug"
-	"sort"
 	"strings"
 	"time"
 
@@ -61,92 +57,13 @@ func Decode(buf []byte, e any) (err error) {
 }
 
 func TimestrampFormat(tt int64) string {
-	return time.Unix(0, tt).Format("2006-01-02 15:04:05")
-}
-
-func ArraySubElement[K int | int8 | int32 | int64 | string](a []K, k K) (_r []K) {
-	if a != nil {
-		_r = make([]K, 0)
-		for _, v := range a {
-			if v != k {
-				_r = append(_r, v)
-			}
-		}
-	}
-	return
-}
-
-func ArraySub[K int | int8 | int32 | int64 | string](a1, a2 []K) (_r []K) {
-	_r = make([]K, 0)
-	if a1 != nil && a2 != nil {
-		m := make(map[K]byte, 0)
-		for _, a := range a2 {
-			m[a] = 0
-		}
-		for _, a := range a1 {
-			if _, ok := m[a]; !ok {
-				_r = append(_r, a)
-			}
-		}
-	} else if a2 == nil {
-		return a1
-	}
-	return
+	return time.Unix(0, tt).Format(time.DateTime)
 }
 
 func Recover() {
 	if err := recover(); err != nil {
 		logging.Error(string(debug.Stack()))
 	}
-}
-
-func ContainStrings(li []string, v string) (b bool) {
-	if li == nil {
-		return false
-	}
-	sort.Strings(li)
-	idx := sort.SearchStrings(li, v)
-	if idx < len(li) {
-		b = li[idx] == v
-	}
-	return
-}
-
-func ContainInt[T int64 | uint64 | int | uint | uint32 | int32](li []T, v T) (b bool) {
-	if li == nil {
-		return false
-	}
-	sort.Slice(li, func(i, j int) bool { return li[i] < li[j] })
-	idx := sort.Search(len(li), func(i int) bool { return li[i] >= v })
-	if idx < len(li) {
-		b = li[idx] == v
-	}
-	return
-}
-
-func HttpPost(bs []byte, close bool, httpurl string) (_r []byte, err error) {
-	tr := &http.Transport{DisableKeepAlives: true}
-	if strings.HasPrefix(httpurl, "https:") {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	client := http.Client{Transport: tr}
-	var req *http.Request
-	if req, err = http.NewRequest(http.MethodPost, httpurl, bytes.NewReader(bs)); err == nil {
-		if close {
-			req.Close = true
-		}
-		var resp *http.Response
-		if resp, err = client.Do(req); err == nil {
-			if close {
-				defer resp.Body.Close()
-			}
-			var body []byte
-			if body, err = io.ReadAll(resp.Body); err == nil {
-				_r = body
-			}
-		}
-	}
-	return
 }
 
 func IsFileExist(path string) (_r bool) {
