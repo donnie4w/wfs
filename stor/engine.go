@@ -13,7 +13,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -28,7 +27,6 @@ import (
 	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
-	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 var serve = &servie{}
@@ -36,8 +34,7 @@ var serve = &servie{}
 type servie struct{}
 
 func (t *servie) Serve() (err error) {
-	initStore()
-	return
+	return initStore()
 }
 
 func (t *servie) Close() (err error) {
@@ -57,6 +54,7 @@ var wfsdb *ldb
 var stopstat bool
 var seq int64
 var count int64
+var nextfn *fileHandler
 var defragStat = false
 var defragfile *os.File
 var unmountmap = &sync.Map{}
@@ -75,13 +73,13 @@ func init() {
 	sys.SearchLimit = fe.findLimit
 	sys.FragAnalysis = fe.fragAnalysis
 	sys.Defrag = fe.defragAndCover
+	sys.Modify = fe.modify
 	sys.Import = importData
 	sys.ImportFile = importFile
 	sys.Export = exportData
 	sys.ExportByINCR = exportByIncr
 	sys.ExportByPaths = exportByPaths
 	sys.ExportFile = exportFile
-	sys.Modify = fe.modify
 }
 
 func initStore() (err error) {
@@ -99,18 +97,11 @@ func initStore() (err error) {
 	if v, err := wfsdb.Get(COUNT); err == nil && v != nil {
 		count = goutil.BytesToInt64(v)
 	}
-	openFileEg(wfsCurrent)
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	freemem := uint64(sys.Memlimit*sys.MB) - m.TotalAlloc
-	length := freemem / 128
-	if length > 1<<20 {
-		length = 1 << 20
-	} else if length < 1<<10 {
-		length = 1 << 10
+	if err = openFileEg(wfsCurrent); err == nil {
+		initCatch()
+		initDefrag()
+		go storTk()
 	}
-	catch, _ = lru.New[string, []byte](int(length))
-	initDefrag()
 	return
 }
 
@@ -230,8 +221,9 @@ type fileEg struct {
 	mux     *sync.Mutex
 }
 
-func openFileEg(node string) {
-	fe.handler, _ = initFileHandler(node)
+func openFileEg(node string) (err error) {
+	fe.handler, err = initFileHandler(node)
+	return
 }
 
 func (t *fileEg) add(key, value []byte) error {
@@ -340,6 +332,7 @@ func (t *fileEg) getData(path string) (_r []byte) {
 		return nil
 	}
 	defer util.Recover()
+	tasklimit()
 	fidbs := fingerprint([]byte(path))
 	if v, err := catchGet(fidbs); err == nil {
 		if v, err = catchGet(v); err == nil {
@@ -448,13 +441,30 @@ func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
 	return
 }
 
+var atomicflag int32 = 0
+
 func (t *fileEg) next(node string) (err error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	if node == t.handler.Node {
-		t.handler, err = initFileHandler("")
+		if nextfn != nil {
+			t.handler = nextfn
+			usefileHandler(t.handler)
+			nextfn = nil
+		} else {
+			t.handler, err = initFileHandler("")
+		}
 	}
 	return
+}
+
+func newNextfn() {
+	if atomic.CompareAndSwapInt32(&atomicflag, 0, 1) {
+		defer atomic.SwapInt32(&atomicflag, 0)
+		if nextfn == nil {
+			nextfn, _ = newFileHandler()
+		}
+	}
 }
 
 // Deprecated
@@ -696,6 +706,7 @@ func initFileHandler(node string) (fh *fileHandler, err error) {
 	fine := false
 	if node == "" {
 		if fh, err = newFileHandler(); err == nil {
+			err = usefileHandler(fh)
 			return
 		} else {
 			sys.FmtLog(err)
@@ -703,7 +714,6 @@ func initFileHandler(node string) (fh *fileHandler, err error) {
 	} else {
 		nid, _ := strToInt(node)
 		nidbs := goutil.Int64ToBytes(int64(nid))
-
 		if endoffsetBs, err := wfsdb.Get(append(ENDOFFSET_, nidbs...)); err == nil {
 			if endOffset := goutil.BytesToInt64(endoffsetBs); endOffset < sys.FileSize {
 				nodepath := getpathBynode(node)
@@ -733,7 +743,6 @@ func initFileHandler(node string) (fh *fileHandler, err error) {
 func newFileHandler() (fh *fileHandler, err error) {
 	nid := util.CreateNodeId()
 	node := intToStr(uint64(nid))
-	nidbs := goutil.Int64ToBytes(nid)
 	var f *os.File
 	nodepath := getpathBynode(node)
 	if err = os.MkdirAll(filepath.Dir(nodepath), 0777); err != nil {
@@ -745,15 +754,23 @@ func newFileHandler() (fh *fileHandler, err error) {
 			if mm, err = NewMMAP(f, 0); err == nil {
 				dataEg.reSetMMap(node, mm)
 				fh = &fileHandler{mm: mm, Node: node}
-
-				fmap := make(map[*[]byte][]byte, 0)
-				ofsBs := append(ENDOFFSET_, nidbs...)
-				fmap[&ofsBs] = []byte{0}
-				fmap[&nidbs] = wfsNodeBeanToBytes(&stub.WfsNodeBean{Rmsize: new(int64)})
-				fmap[&CURRENT] = []byte(node)
-				err = wfsdb.BatchPut(fmap)
 			}
 		}
+	}
+	return
+}
+
+func usefileHandler(fh *fileHandler) (err error) {
+	if nid, b := strToInt(fh.Node); b {
+		nidbs := goutil.Int64ToBytes(int64(nid))
+		fmap := make(map[*[]byte][]byte, 0)
+		ofsBs := append(ENDOFFSET_, nidbs...)
+		fmap[&ofsBs] = []byte{0}
+		fmap[&nidbs] = wfsNodeBeanToBytes(&stub.WfsNodeBean{Rmsize: new(int64)})
+		fmap[&CURRENT] = []byte(fh.Node)
+		err = wfsdb.BatchPut(fmap)
+	} else {
+		return errors.New("format error")
 	}
 	return
 }
@@ -775,7 +792,12 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 
 		if v, err := wfsdb.Get(bidBs); err != nil || v == nil {
 			storeBytes := praseCompress(bs, compressType)
-			if atomic.AddInt64(&t.length, int64(len(storeBytes)+fileoffset())) < sys.FileSize {
+			if cl := atomic.AddInt64(&t.length, int64(len(storeBytes)+fileoffset())); cl < sys.FileSize {
+
+				if nextfn == nil && float32(cl)/float32(sys.FileSize) > 0.6 {
+					go newNextfn()
+				}
+
 				size, refer := int64(len(storeBytes)), new(int32)
 				*refer = 1
 
@@ -1026,7 +1048,7 @@ func importData(bean *stub.SnapshotBean, cover bool) (err error) {
 			return
 		}
 	}
-	if len(bean.Key) == 8 {
+	if len(bean.Key) == fingerprintLen() {
 		catchDel(bean.Key)
 	}
 	err = wfsdb.LoadSnapshotBean(bean)
