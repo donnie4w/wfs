@@ -22,7 +22,7 @@ import (
 
 var dbMap map[string]*ldb = make(map[string]*ldb, 0)
 
-var mux = new(sync.Mutex)
+var dbmux = new(sync.Mutex)
 
 type ldb struct {
 	db       *leveldb.DB
@@ -30,8 +30,8 @@ type ldb struct {
 }
 
 func New(_dir string) (db *ldb, err error) {
-	mux.Lock()
-	defer mux.Unlock()
+	dbmux.Lock()
+	defer dbmux.Unlock()
 	if err = os.MkdirAll(_dir, 0777); err != nil {
 		return
 	}
