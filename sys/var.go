@@ -15,7 +15,7 @@ import (
 	"github.com/donnie4w/gofer/hashmap"
 )
 
-const VERSION = "1.0.4"
+const VERSION = "1.0.5"
 
 const (
 	KB = 1 << 10
@@ -45,6 +45,7 @@ var (
 	IMAGEVIEW2     = "?imageView2"
 	IMAGEVIEW      = "?imageView"
 	IMAGEMODE      = "?mode"
+	MD2HTML        = "?md2html"
 	DefaultAccount = [2]string{"admin", "123"}
 	WEBADDR        = fmt.Sprint(6<<10 + 2)
 	OPADDR         = fmt.Sprint(":", 5<<10+2)
