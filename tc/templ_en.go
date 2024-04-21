@@ -314,29 +314,54 @@ const (
                     return
                 }
                 const file = filebody.files[0];
+    
+    
+                getLimit().then(data => {
+                    let limit = data.limit;
+                    if (limit > 0 && file.size > limit) {
+                        if (limit > 1 << 20) {
+                            alert("data oversize \n\nthe maximum data size is " + limit / (1 << 20) + "MB")
+                        } else {
+                            alert("data oversize \n\nthe maximum data size is " + limit / (1 << 10) + "KB")
+                        }
+                        return
+                    }
+    
+                    const formData = new FormData();
+                    formData.append("file", file, file.name)
+                    const filepath = document.getElementById("filepath").value
+                    if (filepath != "") {
+                        formData.append("filename", filepath)
+                    }
+                    fetch('/append/', {
+                        method: 'POST',
+                        body: formData,
+                    }).then(response => {
+                        if (!response.ok) {
+                            throw new Error("HTTP error! status: ${response.status}");
+                        }
+                        return response.json();
+                    }).then(data => {
+                        if (data.status) {
+                            alert("File Upload Sucessful:" + data.name)
+                            clearFileInput();
+                            document.getElementById("filepath").value = "";
+                        } else {
+                            alert("File Upload Failed" + data.desc)
+                        }
+                    })
+    
+                })
+            }
+    
+            async function getLimit() {
                 const formData = new FormData();
-                formData.append("file", file, file.name)
-                const filepath = document.getElementById("filepath").value
-                if (filepath != "") {
-                    formData.append("filename", filepath)
-                }
-                fetch('/append/', {
+                formData.append("limit", "0")
+                let response = await fetch('/file', {
                     method: 'POST',
                     body: formData,
-                }).then(response => {
-                    if (!response.ok) {
-                        throw new Error("HTTP error! status: ${response.status}");
-                    }
-                    return response.json();
-                }).then(data => {
-                    if (data.status) {
-                        alert("File Upload Sucessful:" + data.name)
-                        clearFileInput();
-                        document.getElementById("filepath").value = "";
-                    } else {
-                        alert("File Upload Failed" + data.desc)
-                    }
                 })
+                return await response.json();
             }
     
             function deletefile(t, name) {
