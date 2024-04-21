@@ -8,6 +8,7 @@
 package tc
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"os"
@@ -17,6 +18,8 @@ import (
 	"github.com/donnie4w/tlnet"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
+	"github.com/yuin/goldmark"
+	mdhtml "github.com/yuin/goldmark/renderer/html"
 )
 
 type clientService struct {
@@ -99,15 +102,26 @@ func getDataByName(uri1 string) (bs []byte, ct string, err sys.ERROR) {
 	if bs != nil {
 		if argstr != "" {
 			m, o := getmode(argstr)
-			if isImageMode(m) {
+			switch m {
+			case sys.IMAGEMODE, sys.IMAGEVIEW, sys.IMAGEVIEW2:
 				if iv2, err := parseUriToImagemode(argstr); err == nil {
 					if bss, err := images.Encode(bs, iv2.width, iv2.height, image.Mode(iv2.mode), iv2.getOptions()); err == nil {
 						bs = bss
 					}
 				}
-			} else {
+			case sys.MD2HTML:
+				if i := strings.Index(o, "/"); i > 0 {
+					bs = md2html(bs, o[:i])
+					k1, k2 := getmode(o[i+1:])
+					ct, _ = contentType("?"+k1, k2)
+				} else {
+					bs = md2html(bs, o)
+					ct, _ = contentType("?html", "")
+				}
+			default:
 				ct, _ = contentType(m, o)
 			}
+
 		} else if index := strings.LastIndex(path, "."); index > 0 {
 			if suffix := path[index:]; len(suffix) > 1 {
 				ct, _ = contentType(suffix, "")
@@ -131,12 +145,21 @@ func getmode(s string) (string, string) {
 	}
 }
 
-func isImageMode(m string) bool {
-	switch m {
-	case sys.IMAGEMODE, sys.IMAGEVIEW, sys.IMAGEVIEW2:
-		return true
-	default:
-		return false
+func md2html(bs []byte, mode string) []byte {
+	md := goldmark.New(
+		goldmark.WithRendererOptions(mdhtml.WithUnsafe()),
+	)
+	var b bytes.Buffer
+	md.Convert(bs, &b)
+	if body := b.Bytes(); len(body) > 0 {
+		switch mode {
+		case "1":
+			return body
+		default:
+			return addHtmlLabel(body)
+		}
+	} else {
+		return bs
 	}
 }
 
@@ -228,4 +251,8 @@ func charset(o string) string {
 	} else {
 		return "charset=" + strings.ToUpper(o)
 	}
+}
+
+func addHtmlLabel(body []byte) []byte {
+	return append([]byte(`<html><body>`), append(body, []byte(`</body></html>`)...)...)
 }
