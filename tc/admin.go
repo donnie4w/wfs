@@ -411,7 +411,11 @@ func fileHtml(hc *tlnet.HttpContext) {
 			hc.ResponseString(resultHtml("server error:", err))
 		}
 	}()
-	tplToHtml(getLang(hc), FILE, nil, hc)
+	if hc.PostParam("limit") == "0" {
+		hc.ResponseString(fmt.Sprint(`{"limit":`, sys.DataMaxsize, `}`))
+	} else {
+		tplToHtml(getLang(hc), FILE, nil, hc)
+	}
 }
 
 func fragmentHtml(hc *tlnet.HttpContext) {
