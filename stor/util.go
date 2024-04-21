@@ -140,9 +140,9 @@ func fingerprintLen() int {
 	}
 }
 
-var catch *lru.Cache[string, []byte]
+var cache *lru.Cache[string, []byte]
 
-func initCatch() (err error) {
+func initcache() (err error) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	freemem := uint64(sys.Memlimit*sys.MB) - m.TotalAlloc
@@ -152,32 +152,32 @@ func initCatch() (err error) {
 	} else if length < 1<<10 {
 		length = 1 << 10
 	}
-	catch, err = lru.New[string, []byte](int(length))
+	cache, err = lru.New[string, []byte](int(length))
 	return
 }
 
-func catchGet(key []byte) (bs []byte, err error) {
-	if catch != nil {
-		if bs, ok := catch.Get(string(key)); ok {
+func cacheGet(key []byte) (bs []byte, err error) {
+	if cache != nil {
+		if bs, ok := cache.Get(string(key)); ok {
 			return bs, nil
 		}
 	}
 	if bs, err = wfsdb.Get(key); err == nil {
-		catchPut(key, bs)
+		cachePut(key, bs)
 	}
 	return
 }
 
-func catchPut(key, value []byte) bool {
-	if catch == nil {
+func cachePut(key, value []byte) bool {
+	if cache == nil {
 		return false
 	}
-	return catch.Add(string(key), value)
+	return cache.Add(string(key), value)
 }
 
-func catchDel(key []byte) bool {
-	if catch == nil {
+func cacheDel(key []byte) bool {
+	if cache == nil {
 		return false
 	}
-	return catch.Remove(string(key))
+	return cache.Remove(string(key))
 }
