@@ -98,7 +98,7 @@ func initStore() (err error) {
 		count = goutil.BytesToInt64(v)
 	}
 	if err = openFileEg(wfsCurrent); err == nil {
-		initCatch()
+		initcache()
 		initDefrag()
 		go storTk()
 	}
@@ -334,8 +334,8 @@ func (t *fileEg) getData(path string) (_r []byte) {
 	defer util.Recover()
 	tasklimit()
 	fidbs := fingerprint([]byte(path))
-	if v, err := catchGet(fidbs); err == nil {
-		if v, err = catchGet(v); err == nil {
+	if v, err := cacheGet(fidbs); err == nil {
+		if v, err = cacheGet(v); err == nil {
 			wfb := bytesToWfsFileBean(v)
 			if bs, b := dataEg.getData(*wfb.Storenode, *wfb.Offset, int64(fileoffset())+*wfb.Size); b {
 				_r = praseUncompress(bs[fileoffset():], *wfb.CompressType)
@@ -385,7 +385,7 @@ func (t *fileEg) delData(path string) (_r sys.ERROR) {
 	if err := wfsdb.Batch(batchmap, dels); err != nil {
 		return sys.ERR_UNDEFINED
 	} else {
-		catchDel(fidbs)
+		cacheDel(fidbs)
 	}
 	return
 }
@@ -419,7 +419,7 @@ func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
 				wpb.Path = &newpath
 				am[&pathseqkey] = wfsPathBeanToBytes(wpb)
 			}
-			catchDel(pathpre)
+			cacheDel(pathpre)
 		} else {
 			return sys.ERR_NOTEXSIT
 		}
@@ -432,7 +432,7 @@ func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
 	}
 	if _, err := wfsdb.Get(newfidbs); err != nil && len(am) > 0 && len(dm) > 0 {
 		if wfsdb.Batch(am, dm) == nil {
-			catchDel(fidbs)
+			cacheDel(fidbs)
 
 		}
 	} else {
@@ -645,7 +645,7 @@ func defragFB(bs []byte, f *os.File, offset int64, node *string, wl *int64, rl *
 			size := goutil.BytesToInt32(bs[8:12])
 			if n, e := f.Write(bs[:12+size]); e == nil {
 				atomic.AddInt64(wl, int64(n))
-				catchDel(bs[:8])
+				cacheDel(bs[:8])
 				if err = wfsdb.Put(bs[:8], wfsFileBeanToBytes(wfb)); err == nil {
 					return defragFB(bs[n:], f, offset+int64(n), node, wl, rl)
 				}
@@ -834,7 +834,7 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 				if err := wfsdb.BatchPut(fmap); err != nil {
 					return nf, sys.ERR_UNDEFINED
 				} else {
-					catchPut(bidBs, wfbbytes)
+					cachePut(bidBs, wfbbytes)
 				}
 
 			} else {
@@ -881,7 +881,7 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 		if err := wfsdb.Batch(batchmap, dels); err != nil {
 			return nf, sys.ERR_UNDEFINED
 		} else {
-			catchPut(fidBs, bidBs)
+			cachePut(fidBs, bidBs)
 		}
 	} else {
 		return nf, sys.ERR_PARAMS
@@ -1049,7 +1049,7 @@ func importData(bean *stub.SnapshotBean, cover bool) (err error) {
 		}
 	}
 	if len(bean.Key) == fingerprintLen() {
-		catchDel(bean.Key)
+		cacheDel(bean.Key)
 	}
 	err = wfsdb.LoadSnapshotBean(bean)
 	return
