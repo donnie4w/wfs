@@ -88,6 +88,7 @@ This overview illustrates the scale and significance of small file applications 
 
 - WFS Source Code Address: https://github.com/donnie4w/wfs
 - Go Client: https://github.com/donnie4w/wfs-goclient
+- Rust Client: https://github.com/donnie4w/wfs-rsclient
 - Java Client: https://github.com/donnie4w/wfs-jclient
 - Python Client: https://github.com/donnie4w/wfs-pyclient
 - Online WFS Demo: http://testwfs.tlnet.top (Username: admin, Password: 123)
