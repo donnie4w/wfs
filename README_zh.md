@@ -67,9 +67,10 @@
 #### wfs相关程序
 
 - wfs源码地址       https://github.com/donnie4w/wfs
-- go客户端           https://github.com/donnie4w/wfs-goclient
-- java客户端         https://github.com/donnie4w/wfs-jclient
-- python客户端    https://github.com/donnie4w/wfs-pyclient
+- go客户端         https://github.com/donnie4w/wfs-goclient
+- rust客户端       https://github.com/donnie4w/wfs-rsclient
+- java客户端       https://github.com/donnie4w/wfs-jclient
+- python客户端     https://github.com/donnie4w/wfs-pyclient
 - wfs在线体验      http://testwfs.tlnet.top     用户名 admin     密码 123
 - wfs使用文档      https://tlnet.top/wfsdoc
 
