@@ -684,7 +684,7 @@ const (
 </html>
     `
 
-    aboutText=`<html>
+	aboutText = `<html>
 
     <head>
         <title>wfs</title>
@@ -735,21 +735,24 @@ const (
             </div>
             <hr>
             <h5 class="mt-2">wfs 相关程序</h5>
-            <div class="row button-links">
-                <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
-                    <a href="https://github.com/donnie4w/wfs" target="_blank" class="btn btn-primary">wfs 源码地址</a>
-                </div>
-                <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
-                    <a href="https://github.com/donnie4w/wfs-goclient" target="_blank" class="btn btn-secondary">Go 客户端</a>
-                </div>
-                <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
-                    <a href="https://github.com/donnie4w/wfs-jclient" target="_blank" class="btn btn-secondary">Java 客户端</a>
-                </div>
-                <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
-                    <a href="https://github.com/donnie4w/wfs-pyclient" target="_blank" class="btn btn-secondary">Python
-                        客户端</a>
-                </div>
-            </div>
+			<div class="row button-links">
+				<div class="col-sm-6 col-md-4 col-lg-3 mb-3">
+					<a href="https://github.com/donnie4w/wfs" target="_blank" class="btn btn-primary">wfs 源码地址</a>
+				</div>
+				<div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+					<a href="https://github.com/donnie4w/wfs-goclient" target="_blank" class="btn btn-secondary">Go 客户端</a>
+				</div>
+				<div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+					<a href="https://github.com/donnie4w/wfs-rsclient" target="_blank" class="btn btn-secondary">Rust 客户端</a>
+				</div>
+				<div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+					<a href="https://github.com/donnie4w/wfs-jclient" target="_blank" class="btn btn-secondary">Java 客户端</a>
+				</div>
+				<div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+					<a href="https://github.com/donnie4w/wfs-pyclient" target="_blank" class="btn btn-secondary">Python
+						客户端</a>
+				</div>
+			</div>
     
             <p class="text-muted mt-3">
                 <strong>Email:</strong>
@@ -758,5 +761,4 @@ const (
         </div>
     
     </html>`
-
 )
