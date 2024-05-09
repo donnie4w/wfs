@@ -80,6 +80,7 @@ func init() {
 	sys.ExportByINCR = exportByIncr
 	sys.ExportByPaths = exportByPaths
 	sys.ExportFile = exportFile
+	sys.IsEmptyBigFile = isEmptyBigFile
 }
 
 func initStore() (err error) {
@@ -118,10 +119,26 @@ func initDefrag() {
 					os.Remove(path)
 					fe.defragAndCover(name)
 				}
+			} else if id, ok := strToInt(d.Name()); ok && util.CheckNodeId(int64(id)) {
+				if isEmptyBigFile(path) {
+					os.Remove(path)
+				}
 			}
 		}
 		return nil
 	})
+}
+
+func isEmptyBigFile(path string) bool {
+	if f, err := os.Open(path); err == nil {
+		defer f.Close()
+		bs := make([]byte, fingerprintLen()*10)
+		f.Read(bs)
+		if bytes.Compare(bs, make([]byte, fingerprintLen()*10)) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 var numlock = lock.NewNumLock(1 << 9)
@@ -637,27 +654,28 @@ func defragFB(bs []byte, f *os.File, offset int64, node *string, wl *int64, rl *
 			err = errors.New(fmt.Sprint(e))
 		}
 	}()
-	if len(bs) > 12 {
-		if v, e := wfsdb.Get(bs[:8]); e == nil && v != nil {
+	step := fingerprintLen()
+	if len(bs) > step+4 {
+		if v, e := wfsdb.Get(bs[:step]); e == nil && v != nil {
 			wfb := bytesToWfsFileBean(v)
 			wfb.Storenode = node
 			*wfb.Offset = offset
-			size := goutil.BytesToInt32(bs[8:12])
-			if n, e := f.Write(bs[:12+size]); e == nil {
+			size := goutil.BytesToInt32(bs[step : step+4])
+			if n, e := f.Write(bs[:step+4+int(size)]); e == nil {
 				atomic.AddInt64(wl, int64(n))
-				cacheDel(bs[:8])
-				if err = wfsdb.Put(bs[:8], wfsFileBeanToBytes(wfb)); err == nil {
+				cacheDel(bs[:step])
+				if err = wfsdb.Put(bs[:step], wfsFileBeanToBytes(wfb)); err == nil {
 					return defragFB(bs[n:], f, offset+int64(n), node, wl, rl)
 				}
 			} else {
 				return e
 			}
 		} else {
-			if size := goutil.BytesToInt32(bs[8:12]); size > 0 || *rl < 4 {
+			if size := goutil.BytesToInt32(bs[step : step+4]); size > 0 || *rl < 4 {
 				if size == 0 {
 					atomic.AddInt32(rl, 1)
 				}
-				err = defragFB(bs[12+size:], f, offset, node, wl, rl)
+				err = defragFB(bs[step+4+int(size):], f, offset, node, wl, rl)
 			}
 		}
 	}
@@ -683,6 +701,7 @@ func (t *fileEg) fragAnalysis(node string) (fb *sys.FragBean, err sys.ERROR) {
 	nid, _ := strToInt(node)
 	nidbs := goutil.Int64ToBytes(int64(nid))
 	ofsBs := append(ENDOFFSET_, nidbs...)
+
 	if v, err := wfsdb.Get(ofsBs); err == nil {
 		fb.ActualSize = goutil.BytesToInt64(v)
 	}
@@ -794,7 +813,9 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 			storeBytes := praseCompress(bs, compressType)
 			if cl := atomic.AddInt64(&t.length, int64(len(storeBytes)+fileoffset())); cl < sys.FileSize {
 
-				if nextfn == nil && float32(cl)/float32(sys.FileSize) > 0.6 {
+				//when the ratio(90%) is exceeded, an empty big file will be created to avoid lock contention
+				//that occurs when files are created at high concurrency.
+				if nextfn == nil && float32(cl)/float32(sys.FileSize) > 0.9 {
 					go newNextfn()
 				}
 
