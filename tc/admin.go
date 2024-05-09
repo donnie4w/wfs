@@ -430,7 +430,7 @@ func fragmentHtml(hc *tlnet.HttpContext) {
 			return err
 		}
 		if !d.IsDir() {
-			if i, b := goutil.Base58DecodeForInt64([]byte(d.Name())); b && util.CheckNodeId(int64(i)) {
+			if i, b := goutil.Base58DecodeForInt64([]byte(d.Name())); b && util.CheckNodeId(int64(i)) && !sys.IsEmptyBigFile(path) {
 				fi, _ := d.Info()
 				fb := &FragmentBean{Name: d.Name(), FileSize: fi.Size(), Time: fi.ModTime().Format(time.DateTime)}
 				if fa, err := sys.FragAnalysis(d.Name()); err == nil {
