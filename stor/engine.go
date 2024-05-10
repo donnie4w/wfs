@@ -98,9 +98,9 @@ func initStore() (err error) {
 	if v, err := wfsdb.Get(COUNT); err == nil && v != nil {
 		count = goutil.BytesToInt64(v)
 	}
+	initDefrag()
 	if err = openFileEg(wfsCurrent); err == nil {
 		initcache()
-		initDefrag()
 		go storTk()
 	}
 	return
