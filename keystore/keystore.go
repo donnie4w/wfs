@@ -16,8 +16,8 @@ import (
 
 	"github.com/donnie4w/wfs/sys"
 
-	. "github.com/donnie4w/gofer/keystore"
-	. "github.com/donnie4w/gofer/util"
+	"github.com/donnie4w/gofer/keystore"
+	"github.com/donnie4w/gofer/util"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func Init(dir string) {
 }
 
 func InitAdmin(dir string) (err error) {
-	if KeyStore, err = NewKeyStore(dir, "keystore.tdb"); err == nil {
+	if keystore.KeyStore, err = keystore.NewKeyStore(dir, "keystore.tdb"); err == nil {
 		Admin.Load()
 		if v, ok := Admin.GetOther("WFSUUID"); ok {
 			id, _ := strconv.ParseUint(v, 10, 64)
@@ -51,7 +51,7 @@ func InitAdmin(dir string) (err error) {
 }
 
 func LoadAdmin(dir string) (err error) {
-	if KeyStore, err = LoadKeyStore(dir, "keystore.tdb"); err == nil {
+	if keystore.KeyStore, err = keystore.LoadKeyStore(dir, "keystore.tdb"); err == nil {
 		Admin.Load()
 	}
 	return
@@ -59,12 +59,10 @@ func LoadAdmin(dir string) (err error) {
 
 func uuid() uint32 {
 	buf := bytes.NewBuffer([]byte{})
-	buf.Write(Int64ToBytes(int64(os.Getpid())))
-	for i := 0; i < 100; i++ {
-		buf.Write(Int64ToBytes(RandId()))
+	buf.Write(util.Int64ToBytes(int64(os.Getpid())))
+	buf.Write(util.Int64ToBytes(util.RandId()))
+	if _r, err := util.RandStrict(1 << 31); err == nil && _r > 0 {
+		buf.Write(util.Int64ToBytes(_r))
 	}
-	if _r, err := RandStrict(1 << 31); err == nil && _r > 0 {
-		buf.Write(Int64ToBytes(_r))
-	}
-	return CRC32(buf.Bytes())
+	return util.Hash32(buf.Bytes())
 }
