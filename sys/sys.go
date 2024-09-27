@@ -18,7 +18,7 @@ func (s *server) Serve() error {
 	wfslogo()
 	KeyStoreInit(WFSDATA)
 	writePid(WFSDATA)
-	Serve.BackForEach(func(_ int, s Server) bool {
+	Serve.Ascend(func(_ int, s Server) bool {
 		go func() {
 			if err := s.Serve(); err != nil {
 				FmtLog(err)
@@ -31,7 +31,7 @@ func (s *server) Serve() error {
 }
 
 func (s *server) Close() (err error) {
-	Serve.FrontForEach(func(_ int, s Server) bool {
+	Serve.Descend(func(_ int, s Server) bool {
 		defer func() { recover() }()
 		s.Close()
 		return true
