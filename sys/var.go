@@ -15,7 +15,7 @@ import (
 	"github.com/donnie4w/gofer/hashmap"
 )
 
-const VERSION = "1.0.6"
+const VERSION = "1.0.7"
 
 const (
 	KB = 1 << 10
@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	Serve          = hashmap.NewSortMap[int, Server]()
+	Serve          = hashmap.NewTreeMap[int, Server](5)
 	Wfs            Server
 	STARTTIME      = time.Now()
 	UUID           int64
