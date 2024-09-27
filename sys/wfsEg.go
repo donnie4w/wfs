@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	KeyStoreInit   func(string)
-	Count          func() int64
-	Seq            func() int64
-	AppendData     func(string, []byte, int32) (int64, ERROR)
-	GetData        func(string) []byte
-	DelData        func(string) ERROR
-	Add            func([]byte, []byte) error
-	Del            func([]byte) error
+	KeyStoreInit func(string)
+	Count        func() int64
+	Seq          func() int64
+	AppendData   func(string, []byte, int32) (int64, ERROR)
+	GetData      func(string) []byte
+	DelData      func(string) ERROR
+	//Add            func([]byte, []byte) error
+	//Del            func([]byte) error
 	SearchLike     func(string) []*PathBean
 	SearchLimit    func(int64, int64) []*PathBean
 	Defrag         func(string) ERROR
