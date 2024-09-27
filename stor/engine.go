@@ -65,8 +65,8 @@ func init() {
 	sys.AppendData = fe.append
 	sys.GetData = fe.getData
 	sys.DelData = fe.delData
-	sys.Add = fe.add
-	sys.Del = fe.del
+	//sys.Add = fe.add
+	//sys.Del = fe.del
 	sys.Count = fe.count
 	sys.Seq = fe.seq
 	sys.SearchLike = fe.findLike
@@ -97,6 +97,13 @@ func initStore() (err error) {
 	}
 	if v, err := wfsdb.Get(COUNT); err == nil && v != nil {
 		count = goutil.BytesToInt64(v)
+	}
+	if v, err := wfsdb.Get(VERSION_); err == nil && v != nil {
+		if !bytes.Equal(v, []byte(sys.VERSION)) {
+			logging.Warn("Version has changed:", string(v), "->", sys.VERSION)
+		}
+	} else {
+		wfsdb.Put(VERSION_, []byte(sys.VERSION))
 	}
 	initDefrag()
 	if err = openFileEg(wfsCurrent); err == nil {
@@ -141,11 +148,13 @@ func isEmptyBigFile(path string) bool {
 	return false
 }
 
-var numlock = lock.NewNumLock(1 << 9)
+var lockLevel1 = lock.NewNumLock(1 << 9)
+
+var lockLevel2 = lock.NewNumLock(1 << 9)
 
 var dataEg = &dataHandler{mm: NewMap[uint64, *Mmap]()}
 
-var referMap = NewLimitMap[string, *int32](1 << 15)
+var referMap = NewLimitHashMap[string, *int32](1 << 15)
 
 type dataHandler struct {
 	mm *Map[uint64, *Mmap]
@@ -153,9 +162,9 @@ type dataHandler struct {
 
 func (t *dataHandler) openMMap(node string) (_r bool) {
 	if id, b := strToInt(node); b {
-		lockid := goutil.CRC64(append(OPENMMAPLOCK_, goutil.Int64ToBytes(int64(id))...))
-		numlock.Lock(int64(lockid))
-		defer numlock.Unlock(int64(lockid))
+		lockid := goutil.Hash64(append(OPENMMAPLOCK_, goutil.Int64ToBytes(int64(id))...))
+		lockLevel2.Lock(int64(lockid))
+		defer lockLevel2.Unlock(int64(lockid))
 		if !t.mm.Has(id) {
 			path := getpathBynode(node)
 			if goutil.IsFileExist(path) {
@@ -208,9 +217,9 @@ func (t *dataHandler) getDataByfile(offset int64, size int64) (bs []byte, ok boo
 
 func (t *dataHandler) reSetMMap(node string, m *Mmap) {
 	if id, b := strToInt(node); b {
-		lockid := goutil.CRC64(append(RESETMMAPLOCK_, goutil.Int64ToBytes(int64(id))...))
-		numlock.Lock(int64(lockid))
-		defer numlock.Unlock(int64(lockid))
+		lockid := goutil.Hash64(append(RESETMMAPLOCK_, goutil.Int64ToBytes(int64(id))...))
+		lockLevel2.Lock(int64(lockid))
+		defer lockLevel2.Unlock(int64(lockid))
 		if oldm, b := t.mm.Get(id); b {
 			oldm.UnmapAndCloseFile()
 		}
@@ -243,13 +252,13 @@ func openFileEg(node string) (err error) {
 	return
 }
 
-func (t *fileEg) add(key, value []byte) error {
-	return wfsdb.Put(key, value)
-}
+//func (t *fileEg) add(key, value []byte) error {
+//	return wfsdb.Put(key, value)
+//}
 
-func (t *fileEg) del(key []byte) error {
-	return wfsdb.Del(key)
-}
+//func (t *fileEg) del(key []byte) error {
+//	return wfsdb.Del(key)
+//}
 
 func (t *fileEg) count() int64 {
 	return count
@@ -318,6 +327,11 @@ func (t *fileEg) append(path string, bs []byte, compressType int32) (id int64, _
 	defer util.Recover()
 	node := t.handler.Node
 	var nf bool
+
+	lockid := goutil.Hash64(append(APPENDLOCK_, []byte(path)...))
+	lockLevel1.Lock(int64(lockid))
+	defer lockLevel1.Unlock(int64(lockid))
+
 	if nf, _r = t.handler.append(path, bs, compressType); _r != nil && _r.Equal(sys.ERR_FILEAPPEND) {
 		if err := t.next(node); err == nil {
 			nf, _r = t.handler.append(path, bs, compressType)
@@ -797,17 +811,14 @@ func usefileHandler(fh *fileHandler) (err error) {
 func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf bool, _r sys.ERROR) {
 	if path != "" && bs != nil && len(bs) > 0 {
 		fidBs := fingerprint([]byte(path))
-
-		lockid := goutil.CRC64(append(APPENDLOCK_, fidBs...))
-		numlock.Lock(int64(lockid))
-		defer numlock.Unlock(int64(lockid))
-
 		bidBs := fingerprint(bs)
-
 		nid, _ := strToInt(t.Node)
 		nidbs := goutil.Int64ToBytes(int64(nid))
-
 		var wfbbs []byte
+
+		lockid := goutil.Hash64(append(APPENDLOCK_, bidBs...))
+		lockLevel2.Lock(int64(lockid))
+		defer lockLevel2.Unlock(int64(lockid))
 
 		if v, err := wfsdb.Get(bidBs); err != nil || v == nil {
 			storeBytes := praseCompress(bs, compressType)
@@ -822,7 +833,7 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 				size, refer := int64(len(storeBytes)), new(int32)
 				*refer = 1
 
-				if r, ok := referMap.LoadOrStore(string(bidBs), refer); ok {
+				if r, ok := referMap.Put(string(bidBs), refer); ok {
 					refer = r
 					atomic.AddInt32(refer, 1)
 				}
@@ -891,7 +902,7 @@ func (t *fileHandler) append(path string, bs []byte, compressType int32) (nf boo
 
 		if wfbbs != nil {
 			wfb := bytesToWfsFileBean(wfbbs)
-			if r, ok := referMap.LoadOrStore(string(bidBs), wfb.Refercount); ok {
+			if r, ok := referMap.Put(string(bidBs), wfb.Refercount); ok {
 				wfb.Refercount = r
 			}
 			atomic.AddInt32(wfb.Refercount, 1)
