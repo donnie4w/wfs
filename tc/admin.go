@@ -90,8 +90,6 @@ func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err err
 		return
 	}
 	sys.WEBADDR = addr
-	tlnet.SetLogOFF()
-
 	t.tlAdmin.Handle("/login", loginHandler)
 	t.tlAdmin.Handle("/init", initHandler)
 	t.tlAdmin.Handle("/lang", langHandler)
@@ -117,7 +115,7 @@ func (t *adminService) _serve(addr string, serverCrt, serverKey string) (err err
 
 	if serverCrt != "" && serverKey != "" {
 		sys.FmtLog("webAdmin start tls [", addr, "]")
-		err = t.tlAdmin.HttpStartTLS(addr, serverCrt, serverKey)
+		err = t.tlAdmin.HttpsStart(addr, serverCrt, serverKey)
 	}
 	if !t.isClose {
 		sys.FmtLog("webAdmin start [", addr, "]")
