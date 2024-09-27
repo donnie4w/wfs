@@ -54,7 +54,7 @@ func (t *clientService) _serve(addr string, serverCrt, serverKey string) (err er
 	t.tln.Handle("/", loadHandler)
 	if serverCrt != "" && serverKey != "" {
 		sys.FmtLog("client start tls [", addr, "]")
-		err = t.tln.HttpStartTLS(addr, serverCrt, serverKey)
+		err = t.tln.HttpsStart(addr, serverCrt, serverKey)
 	}
 	if !t.isClose {
 		sys.FmtLog("client listen [", addr, "]")
