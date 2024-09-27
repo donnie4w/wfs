@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	VERSION_       = []byte{127, 1}
 	ENDOFFSET_     = []byte{1}
 	APPENDLOCK_    = []byte{2}
 	RESETMMAPLOCK_ = []byte{3}
