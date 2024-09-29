@@ -100,9 +100,10 @@ This overview illustrates the scale and significance of small file applications 
 
 - High efficiency
 - Simplicity
-- Zero dependency
-- Management platform
+- Zero Dependency
+- Interface Management
 - Image processing
+- File Handling
 
 ------------
 
@@ -225,14 +226,17 @@ original image:   https://tlnet.top/statics/test/wfs_test.jpg
 
 3.   wfs.json configuration instruction
 
-			{
-   			 "listen": 4660,     
-   			 "opaddr": ":6802",
-    			"webaddr": ":6801",
-   			 "memLimit": 128,
-   	 		"data.maxsize": 10000,
-  	 		 "filesize": 100,
-			}
+```json
+{
+    "listen": 4660,     
+    "opaddr": ":6802",
+    "webaddr": ":6801",
+    "memLimit": 128,
+    "data.maxsize": 10000,
+    "filesize": 100,
+}
+```
+
 	
 **Attribute description**
 
@@ -249,26 +253,33 @@ original image:   https://tlnet.top/statics/test/wfs_test.jpg
 
 #### WFS storage, delete data description
 
-1. http/https
+1. **http/https**
 
-		 curl -F "file=@1.jpg"  "http://127.0.0.1:6801/append/test/1.jpg" -H "username:admin" -H "password:123"
+```bash
+curl -F "file=@1.jpg"  "http://127.0.0.1:6801/append/test/1.jpg" -H "username:admin" -H "password:123"
+```
 
-		 curl -X DELETE "http://127.0.0.1:6801/delete/test/1.jpg" -H "username:admin" -H "password:123"
+```bash
+curl -X DELETE "http://127.0.0.1:6801/delete/test/1.jpg" -H "username:admin" -H "password:123"
+```
 
-2. using the client
+2. **using the client**
 
-    The following is a java client example
+###### The following is a java client example
 
-    	public void append() throws WfsException, IOException {
-        String dir = System.getProperty("user.dir") + "/src/test/java/io/github/donnie4w/wfs/test/";
-        WfsClient wc = newClient();
-        WfsFile wf = new WfsFile();
-        wf.setName("test/java/1.jpeg");
-        wf.setData(Files.readAllBytes(Paths.get(dir + "1.jpeg")));
-        wc.append(wf);
-    	}
+```java
+public void append() throws WfsException, IOException {
+    String dir = System.getProperty("user.dir") + "/src/test/java/io/github/donnie4w/wfs/test/";
+    WfsClient wc = newClient();
+    WfsFile wf = new WfsFile();
+    wf.setName("test/java/1.jpeg");
+    wf.setData(Files.readAllBytes(Paths.get(dir + "1.jpeg")));
+    wc.append(wf);
+}
+```
 
-3. The following is a java client example
+
+3. **The following is a java client example**
 
 ------------
 
