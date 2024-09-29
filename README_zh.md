@@ -81,8 +81,9 @@
 - 高效性
 - 简易性
 - 零依赖
-- 管理平台
+- 界面管理
 - 图片处理
+- 文件处理
 
 ------------
 
@@ -194,26 +195,31 @@
 
 ##### 图片处理方式见 [wfs使用文档](https://tlnet.top/wfsdoc "wfs使用文档")
 
-------------
+------
 
 #### WFS的使用简单说明
 
 1. 执行文件下载地址：https://tlnet.top/download
 
 2. 启动：
-        ./linux101_wfs     -c    wfs.json
 
+```bash
+./linux101_wfs     -c    wfs.json
+```
+        
 3.   wfs.json 配置说明
 
-			{
-   			 "listen": 4660,     
-   			 "opaddr": ":6802",
-    			"webaddr": ":6801",
-   			 "memLimit": 128,
-   	 		"data.maxsize": 10000,
-  	 		 "filesize": 100,
-			}
-	
+```json
+{
+    "listen": 4660,     
+    "opaddr": ":6802",
+    "webaddr": ":6801",
+    "memLimit": 128,
+    "data.maxsize": 10000,
+    "filesize": 100,
+}
+```
+
 **属性说明：**
 
 - listen                  http/https 资源获取服务监听端口
@@ -229,26 +235,34 @@
 
 #### WFS如何存储，删除数据
 
-1. http/https
+1. **http/https**
 
-		 curl -F "file=@1.jpg"  "http://127.0.0.1:6801/append/test/1.jpg" -H "username:admin" -H "password:123"
+```bash
+curl -F "file=@1.jpg"  "http://127.0.0.1:6801/append/test/1.jpg" -H "username:admin" -H "password:123"
+```
+		 
+```bash
+curl -X DELETE "http://127.0.0.1:6801/delete/test/1.jpg" -H "username:admin" -H "password:123"
+```
+		 
 
-		 curl -X DELETE "http://127.0.0.1:6801/delete/test/1.jpg" -H "username:admin" -H "password:123"
+2. **使用客户端**
 
-2. 使用客户端
+###### 以下是java客户端 示例
 
-    以下是java客户端 示例
+```java
+public void append() throws WfsException, IOException {
+    String dir = System.getProperty("user.dir") + "/src/test/java/io/github/donnie4w/wfs/test/";
+    WfsClient wc = newClient();
+    WfsFile wf = new WfsFile();
+    wf.setName("test/java/1.jpeg");
+    wf.setData(Files.readAllBytes(Paths.get(dir + "1.jpeg")));
+    wc.append(wf);
+}
+```
 
-    	public void append() throws WfsException, IOException {
-        String dir = System.getProperty("user.dir") + "/src/test/java/io/github/donnie4w/wfs/test/";
-        WfsClient wc = newClient();
-        WfsFile wf = new WfsFile();
-        wf.setName("test/java/1.jpeg");
-        wf.setData(Files.readAllBytes(Paths.get(dir + "1.jpeg")));
-        wc.append(wf);
-    	}
 
-3. 通过管理后台上传/删除文件
+3. **通过管理后台上传/删除文件**
 
 ------------
 
