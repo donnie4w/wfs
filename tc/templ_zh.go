@@ -110,6 +110,7 @@ const (
             </div>
         </div>
     </div>
+
     <div class="modal fade" id="processpicModal" tabindex="-1" aria-labelledby="processpicModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -154,7 +155,20 @@ const (
                 </div>
             </div>
         </div>
+
+        <div class="toast-container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1051;">
+            <div id="copyToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="1800" style="background-color: rgba(0, 0, 0, 0.4);width: auto;">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <h6 id="copyToastId" style="margin: 0;"></h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+
 </div>
 <script>
     var aurl = "";
@@ -568,8 +582,33 @@ const (
     }
 
     function copysrc() {
-        navigator.clipboard.writeText(document.getElementById("processpicModalLabel").innerText);
+        copyToClipboard(document.getElementById("processpicModalLabel").innerText);
     }
+
+    function copyToClipboard(text) {
+        if (text == "") {
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Text copied to clipboard successfully!');
+                copyToastShow('已复制内容到剪贴板');
+            }).catch(function (error) {
+                console.error('Failed to copy text: ', error);
+                copyToastShow('复制内容到剪贴板错误:' + error);
+            });
+        } else {
+            copyToastShow('无法复制到剪贴板，需使用https协议');
+        }
+    }
+
+    function copyToastShow(msg) {
+        const toastElement = document.getElementById('copyToast');
+        document.getElementById("copyToastId").innerText = msg;
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+    }
+
 </script>
 </body>
 
