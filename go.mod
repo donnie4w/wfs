@@ -1,18 +1,19 @@
 module github.com/donnie4w/wfs
 
-go 1.22.4
+go 1.23.2
 
 require (
-	github.com/donnie4w/gofer v0.1.5
+	github.com/donnie4w/go-logger v0.28.0
+	github.com/donnie4w/gofer v0.1.8
 	github.com/donnie4w/gothrift v0.0.3
-	github.com/donnie4w/simplelog v0.1.1
-	github.com/donnie4w/tlnet v0.1.0
+	github.com/donnie4w/tlnet v0.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/yuin/goldmark v1.7.4
-	golang.org/x/net v0.29.0
-	google.golang.org/protobuf v1.34.2
+	golang.org/x/net v0.30.0
+	google.golang.org/protobuf v1.35.1
 )
 
 require (
@@ -20,6 +21,7 @@ require (
 	github.com/chai2010/webp v1.1.1 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/donnie4w/ico v0.0.1 // indirect
+	github.com/donnie4w/simplelog v0.1.1 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -33,5 +35,5 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/image v0.20.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 )
