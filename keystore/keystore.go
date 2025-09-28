@@ -9,15 +9,14 @@
 package keystore
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/donnie4w/gofer/util"
 	"os"
 	"strconv"
 
 	"github.com/donnie4w/wfs/sys"
 
 	"github.com/donnie4w/gofer/keystore"
-	"github.com/donnie4w/gofer/util"
 )
 
 func init() {
@@ -43,7 +42,7 @@ func InitAdmin(dir string) (err error) {
 			id, _ := strconv.ParseUint(v, 10, 64)
 			sys.UUID = int64(id)
 		} else {
-			sys.UUID = int64(uuid())
+			sys.UUID = util.UUID64()
 			Admin.PutOther("WFSUUID", fmt.Sprint(sys.UUID))
 		}
 	}
@@ -55,14 +54,4 @@ func LoadAdmin(dir string) (err error) {
 		Admin.Load()
 	}
 	return
-}
-
-func uuid() uint32 {
-	buf := bytes.NewBuffer([]byte{})
-	buf.Write(util.Int64ToBytes(int64(os.Getpid())))
-	buf.Write(util.Int64ToBytes(util.RandId()))
-	if _r, err := util.RandStrict(1 << 31); err == nil && _r > 0 {
-		buf.Write(util.Int64ToBytes(_r))
-	}
-	return util.Hash32(buf.Bytes())
 }
