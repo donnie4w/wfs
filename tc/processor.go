@@ -13,7 +13,7 @@ import (
 	"os"
 	textTpl "text/template"
 
-	"github.com/donnie4w/simplelog/logging"
+	"github.com/donnie4w/go-logger/logger"
 	"github.com/donnie4w/tlnet"
 )
 
@@ -75,7 +75,7 @@ func textTplByPath(path string, data any, hc *tlnet.HttpContext) {
 	if tp, err := textTpl.ParseFiles(path); err == nil {
 		tp.Execute(hc.Writer(), data)
 	} else {
-		logging.Error(err)
+		logger.Error(err)
 	}
 }
 
@@ -85,7 +85,7 @@ func textTplByText(text string, data any, hc *tlnet.HttpContext) {
 	if _, err := tl.Parse(text); err == nil {
 		tl.Execute(hc.Writer(), data)
 	} else {
-		logging.Error(err)
+		logger.Error(err)
 	}
 }
 
@@ -93,6 +93,6 @@ func htmlTplByPath(path string, data any, hc *tlnet.HttpContext) {
 	if tp, err := htmlTpl.ParseFiles(path); err == nil {
 		tp.Execute(hc.Writer(), data)
 	} else {
-		logging.Error(err)
+		logger.Error(err)
 	}
 }
