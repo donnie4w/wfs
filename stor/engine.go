@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 //
 // github.com/donnie4w/wfs
+
 package stor
 
 import (
@@ -19,11 +20,11 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/donnie4w/go-logger/logger"
 	. "github.com/donnie4w/gofer/hashmap"
 	"github.com/donnie4w/gofer/lock"
 	. "github.com/donnie4w/gofer/mmap"
 	goutil "github.com/donnie4w/gofer/util"
-	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
@@ -50,7 +51,7 @@ func (t *servie) Close() (err error) {
 	return
 }
 
-var wfsdb *ldb
+var wfsdb DB
 var stopstat bool
 var seq int64
 var count int64
@@ -65,11 +66,12 @@ func init() {
 	sys.AppendData = fe.append
 	sys.GetData = fe.getData
 	sys.DelData = fe.delData
-	//sys.Add = fe.add
+	//sys.add = fe.add
 	//sys.Del = fe.del
 	sys.Count = fe.count
 	sys.Seq = fe.seq
 	sys.SearchLike = fe.findLike
+	sys.Contains = fe.has
 	sys.SearchLimit = fe.findLimit
 	sys.FragAnalysis = fe.fragAnalysis
 	sys.Defrag = fe.defragAndCover
@@ -84,10 +86,18 @@ func init() {
 }
 
 func initStore() (err error) {
-	if wfsdb, err = New(sys.WFSDATA + "/wfsdb"); err != nil {
-		fmt.Println("init error:" + err.Error())
-		os.Exit(1)
+	if sys.Conf.DBConfig != nil {
+		if wfsdb, err = New(sys.Conf.DBConfig); err != nil {
+			fmt.Println("init error:" + err.Error())
+			os.Exit(1)
+		}
+	} else {
+		if wfsdb, err = NewWithDefaults(sys.Conf.DBType); err != nil {
+			fmt.Println("init error:" + err.Error())
+			os.Exit(1)
+		}
 	}
+
 	var wfsCurrent string
 	if v, err := wfsdb.Get(CURRENT); err == nil && v != nil {
 		wfsCurrent = string(v)
@@ -100,7 +110,7 @@ func initStore() (err error) {
 	}
 	if v, err := wfsdb.Get(VERSION_); err == nil && v != nil {
 		if !bytes.Equal(v, []byte(sys.VERSION)) {
-			logging.Warn("Version has changed:", string(v), "->", sys.VERSION)
+			logger.Warn("Version has changed:", string(v), "->", sys.VERSION)
 		}
 	} else {
 		wfsdb.Put(VERSION_, []byte(sys.VERSION))
@@ -376,6 +386,20 @@ func (t *fileEg) getData(path string) (_r []byte) {
 	return
 }
 
+func (t *fileEg) has(path string) (b bool) {
+	if stopstat {
+		return false
+	}
+	defer util.Recover()
+	tasklimit()
+	if v, err := cacheGet(fingerprint([]byte(path))); err == nil {
+		if v, err = cacheGet(v); err == nil {
+			b = true
+		}
+	}
+	return
+}
+
 func (t *fileEg) delData(path string) (_r sys.ERROR) {
 	if stopstat {
 		return sys.ERR_STOPSERVICE
@@ -464,7 +488,6 @@ func (t *fileEg) modify(path, newpath string) (err sys.ERROR) {
 	if _, err := wfsdb.Get(newfidbs); err != nil && len(am) > 0 && len(dm) > 0 {
 		if wfsdb.Batch(am, dm) == nil {
 			cacheDel(fidbs)
-
 		}
 	} else {
 		return sys.ERR_NEWPATHEXIST
@@ -559,7 +582,7 @@ func (t *fileEg) defrag(node string) (err sys.ERROR) {
 			wfsdb.Batch(newbat, [][]byte{oldOffsBs})
 			dataEg.unMmap(node)
 			if err := os.Remove(getpathBynode(node)); err != nil {
-				logging.Error(err)
+				logger.Error(err)
 			}
 			dataEg.unMmap(newnode)
 			dataEg.openMMap(newnode)
