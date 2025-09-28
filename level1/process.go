@@ -123,7 +123,7 @@ type pcontext struct {
 }
 
 func newCliContext(tt thrift.TTransport) (cc *pcontext) {
-	cc = &pcontext{goutil.RandId(), false, tt, &sync.Mutex{}, false}
+	cc = &pcontext{goutil.UUID64(), false, tt, &sync.Mutex{}, false}
 	return
 }
 
