@@ -9,6 +9,7 @@ package tc
 
 import (
 	"fmt"
+	"github.com/donnie4w/gofer/base58"
 	"io/fs"
 	"net/http"
 	"os"
@@ -19,12 +20,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/donnie4w/go-logger/logger"
 	"github.com/donnie4w/gofer/gosignal"
 	. "github.com/donnie4w/gofer/hashmap"
 	"github.com/donnie4w/gofer/image"
 	tldbKs "github.com/donnie4w/gofer/keystore"
 	goutil "github.com/donnie4w/gofer/util"
-	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/tlnet"
 	. "github.com/donnie4w/wfs/keystore"
 	"github.com/donnie4w/wfs/stub"
@@ -428,7 +429,7 @@ func fragmentHtml(hc *tlnet.HttpContext) {
 			return err
 		}
 		if !d.IsDir() {
-			if i, b := goutil.Base58DecodeForInt64([]byte(d.Name())); b && util.CheckNodeId(int64(i)) && !sys.IsEmptyBigFile(path) {
+			if i, b := base58.DecodeForInt64([]byte(d.Name())); b && util.CheckNodeId(int64(i)) && !sys.IsEmptyBigFile(path) {
 				fi, _ := d.Info()
 				fb := &FragmentBean{Name: d.Name(), FileSize: fi.Size(), Time: fi.ModTime().Format(time.DateTime)}
 				if fa, err := sys.FragAnalysis(d.Name()); err == nil {
@@ -650,7 +651,7 @@ func importHandler(hc *tlnet.HttpContext) {
 	if sb, err := stub.BytesToSnapshotBean(bs); err == nil {
 		sys.Import(sb, importcover)
 	} else {
-		logging.Error(err)
+		logger.Error(err)
 		hc.WS.Send([]byte{2})
 		hc.WS.Close()
 	}
@@ -676,7 +677,7 @@ func importfileHandler(hc *tlnet.HttpContext) {
 	if ssf, err := stub.BytesToSnapshotFile(bs); err == nil {
 		sys.ImportFile(ssf)
 	} else {
-		logging.Error(err)
+		logger.Error(err)
 		hc.WS.Send([]byte{2})
 		hc.WS.Close()
 	}
