@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/donnie4w/go-logger/logger"
 	goutil "github.com/donnie4w/gofer/util"
-	"github.com/donnie4w/simplelog/logging"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -62,7 +62,7 @@ func TimestrampFormat(tt int64) string {
 
 func Recover() {
 	if err := recover(); err != nil {
-		logging.Error(string(debug.Stack()))
+		logger.Error(string(debug.Stack()))
 	}
 }
 
@@ -83,7 +83,7 @@ func IsURL(str string) bool {
 }
 
 func CreateNodeId() int64 {
-	bs := goutil.Int64ToBytes(goutil.RandId())
+	bs := goutil.Int64ToBytes(goutil.UUID64())
 	b8 := goutil.CRC8(bs[:7])
 	bs[7] = b8
 	return goutil.BytesToInt64(bs)
