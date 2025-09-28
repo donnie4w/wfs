@@ -4,16 +4,18 @@
 // license that can be found in the LICENSE file.
 //
 // github.com/donnie4w/wfs
+
 package stor
 
 import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	goutil "github.com/donnie4w/gofer/util"
 	"runtime"
 
+	"github.com/donnie4w/gofer/base58"
 	"github.com/donnie4w/gofer/compress"
-	goutil "github.com/donnie4w/gofer/util"
 	. "github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/sys"
 	"github.com/donnie4w/wfs/util"
@@ -21,12 +23,12 @@ import (
 )
 
 func strToInt(s string) (u uint64, b bool) {
-	u, b = goutil.Base58DecodeForInt64([]byte(s))
+	u, b = base58.DecodeForInt64([]byte(s))
 	return
 }
 
 func intToStr(u uint64) (s string) {
-	return string(goutil.Base58EncodeForInt64(u))
+	return string(base58.EncodeForInt64(u))
 }
 
 func bytesToWfsFileBean(bs []byte) (wffb *WfsFileBean) {
