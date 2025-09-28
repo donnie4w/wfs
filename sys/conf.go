@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 //
 // github.com/donnie4w/wfs
+
 package sys
 
 import (
@@ -18,9 +19,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/donnie4w/go-logger/logger"
 	"github.com/donnie4w/gofer/compress"
 	goutil "github.com/donnie4w/gofer/util"
-	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/wfs/stub"
 	"github.com/donnie4w/wfs/util"
 )
@@ -58,15 +59,19 @@ func praseflag() {
 	if Conf.Sync != nil {
 		SYNC = *Conf.Sync
 	}
-	if Conf.WebAddr != nil {
+	if WEBADDR != "" && Conf.WebAddr != nil {
 		WEBADDR = *Conf.WebAddr
 	}
-	if Conf.Listen > 0 {
-		LISTEN = Conf.Listen
-	} else if Conf.Listen < 0 {
-		LISTEN = 0
+
+	if LISTEN > 0 {
+		if Conf.Listen > 0 {
+			LISTEN = Conf.Listen
+		} else if Conf.Listen < 0 {
+			LISTEN = 0
+		}
 	}
-	if Conf.Opaddr != nil {
+
+	if OPADDR != "" && Conf.Opaddr != nil {
 		OPADDR = *Conf.Opaddr
 	}
 
@@ -136,11 +141,11 @@ func praseflag() {
 	debug.SetMemoryLimit(Memlimit * MB)
 	debug.SetGCPercent(GOGC)
 	wfsmkdir(WFSDATA)
-	log.SetRollingFile(WFSDATA+"/logs", "wfs.log", 100, logging.MB)
+	log.SetRollingFile(WFSDATA+"/logs", "wfs.log", 100, logger.MB)
 	if LOGDEBUG {
-		logging.SetFormat(logging.FORMAT_DATE|logging.FORMAT_TIME|logging.FORMAT_SHORTFILENAME).SetRollingFile(WFSDATA+"/logs", "wfs.log", 100, logging.MB)
+		logger.SetFormat(logger.FORMAT_DATE|logger.FORMAT_TIME|logger.FORMAT_SHORTFILENAME).SetRollingFile(WFSDATA+"/logs", "wfs.log", 100, logger.MB)
 	} else {
-		logging.SetLevel(logging.LEVEL_OFF)
+		logger.SetLevel(logger.LEVEL_OFF)
 	}
 }
 
@@ -575,15 +580,15 @@ func GetConfg() (conf *ConfBean) {
 
 func wfsmkdir(dir string) (err error) {
 	if err = os.MkdirAll(dir+"/logs", 0777); err != nil {
-		logging.Error(err)
+		logger.Error(err)
 		os.Exit(1)
 	}
 	if err = os.MkdirAll(dir+"/wfsdb", 0777); err != nil {
-		logging.Error(err)
+		logger.Error(err)
 		os.Exit(1)
 	}
 	if err = os.MkdirAll(dir+"/wfsfile", 0777); err != nil {
-		logging.Error(err)
+		logger.Error(err)
 		os.Exit(1)
 	}
 	return
