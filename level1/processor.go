@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 //
 // github.com/donnie4w/wfs
+
 package level1
 
 import (
@@ -26,8 +27,6 @@ func ctx2CliContext(ctx context.Context) *pcontext {
 	return ctx.Value("CliContext").(*pcontext)
 }
 
-// Parameters:
-//   - I
 func (t *processhandle) Ping(ctx context.Context) (_r int8, _err error) {
 	defer util.Recover()
 	mux := ctx2CliContext(ctx).mux
@@ -37,8 +36,6 @@ func (t *processhandle) Ping(ctx context.Context) (_r int8, _err error) {
 	return
 }
 
-// Parameters:
-//   - File
 func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
@@ -49,7 +46,7 @@ func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _e
 		return
 	}
 	_r = &WfsAck{Ok: true}
-	if wf.Name != "" && wf.Data != nil && len(wf.Data) > 0 {
+	if wf.Name != "" && len(wf.Data) > 0 {
 		if int64(len(wf.Data)) > sys.DataMaxsize {
 			_r.Ok, _r.Error = false, sys.ERR_OVERSIZE.WfsError()
 			return
@@ -65,8 +62,6 @@ func (t *processhandle) Append(ctx context.Context, wf *WfsFile) (_r *WfsAck, _e
 	return
 }
 
-// Parameters:
-//   - Path
 func (t *processhandle) Delete(ctx context.Context, path string) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
@@ -85,8 +80,6 @@ func (t *processhandle) Delete(ctx context.Context, path string) (_r *WfsAck, _e
 	return
 }
 
-// Parameters:
-//   - Path
 func (t *processhandle) Get(ctx context.Context, path string) (_r *WfsData, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
@@ -103,8 +96,6 @@ func (t *processhandle) Get(ctx context.Context, path string) (_r *WfsData, _err
 	return
 }
 
-// Parameters:
-//   - Wa
 func (t *processhandle) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	mux := ctx2CliContext(ctx).mux
@@ -119,9 +110,6 @@ func (t *processhandle) Auth(ctx context.Context, wa *WfsAuth) (_r *WfsAck, _err
 	return
 }
 
-// Parameters:
-//   - Path
-//   - Newpath_
 func (t *processhandle) Rename(ctx context.Context, path string, newpath string) (_r *WfsAck, _err error) {
 	defer util.Recover()
 	cc := ctx2CliContext(ctx)
