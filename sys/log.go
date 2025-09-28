@@ -13,10 +13,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/donnie4w/simplelog/logging"
+	"github.com/donnie4w/go-logger/logger"
 )
 
-var log = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME).SetLevel(logging.LEVEL_INFO)
+var log = logger.NewLogger().SetFormat(logger.FORMAT_DATE | logger.FORMAT_TIME).SetLevel(logger.LEVEL_INFO)
 
 func FmtLog(v ...any) {
 	info := fmt.Sprint(v...)
