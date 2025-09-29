@@ -19,8 +19,9 @@ var (
 	AppendData   func(string, []byte, int32) (int64, ERROR)
 	GetData      func(string) []byte
 	DelData      func(string) ERROR
-	//Add            func([]byte, []byte) error
+	//add            func([]byte, []byte) error
 	//Del            func([]byte) error
+	Contains       func(string) bool
 	SearchLike     func(string) []*PathBean
 	SearchLimit    func(int64, int64) []*PathBean
 	Defrag         func(string) ERROR
